@@ -16,3 +16,9 @@ pnpm husky install
 ```
 pnpm build
 ```
+
+## Test
+
+```
+pnpm test
+```
