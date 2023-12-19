@@ -16,7 +16,7 @@
   "devDependencies": {
     "@commitlint/cli": "18.4.3",
     "@commitlint/config-conventional": "18.4.3",
-    "@nomicfoundation/hardhat-ethers": "^3.0.5",
+    "@nomicfoundation/hardhat-ethers": "3.0.5",
     "@nomicfoundation/hardhat-toolbox": "4.0.0",
     "@types/chai": "4.3.11",
     "@types/mocha": "10.0.6",

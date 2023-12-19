@@ -17,7 +17,7 @@ devDependencies:
     specifier: 18.4.3
     version: 18.4.3
   '@nomicfoundation/hardhat-ethers':
-    specifier: ^3.0.5
+    specifier: 3.0.5
     version: 3.0.5(ethers@6.9.0)(hardhat@2.19.3)
   '@nomicfoundation/hardhat-toolbox':
     specifier: 4.0.0
