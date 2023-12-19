@@ -9,6 +9,9 @@
     "clean": "rm -rf artifacts cache",
     "commit": "cz"
   },
+  "dependencies": {
+    "@openzeppelin/contracts": "5.0.1"
+  },
   "devDependencies": {
     "@commitlint/cli": "18.4.3",
     "@commitlint/config-conventional": "18.4.3",
