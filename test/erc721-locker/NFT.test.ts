@@ -19,13 +19,13 @@ describe("NFT", () => {
     const nftFactory = (await ethers.getContractFactory(
       "contracts/erc721-locker/NFT.sol:NFT"
     )) as NFT__factory;
-    nft = await nftFactory.deploy();
+    nft = await nftFactory.deploy(minter.address);
     await nft.waitForDeployment();
   });
 
   describe("mint", () => {
     it("success", async () => {
-      await expect(nft.connect(minter).mint(""))
+      await expect(nft.connect(minter).safeAirdrop(minter.address, ""))
         .to.emit(nft, "Transfer")
         .withArgs(ethers.ZeroAddress, minter.address, 0);
 
