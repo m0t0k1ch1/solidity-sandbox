@@ -3,7 +3,7 @@ import { ethers } from "hardhat";
 
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-import { NFT } from "../../typechain-types";
+import { NFT, NFT__factory } from "../../typechain-types";
 
 describe("NFT", () => {
   let runner: HardhatEthersSigner;
@@ -16,9 +16,9 @@ describe("NFT", () => {
   });
 
   beforeEach(async () => {
-    const nftFactory = await ethers.getContractFactory(
+    const nftFactory = (await ethers.getContractFactory(
       "contracts/erc721-locker/NFT.sol:NFT"
-    );
+    )) as NFT__factory;
     nft = await nftFactory.deploy();
     await nft.waitForDeployment();
   });

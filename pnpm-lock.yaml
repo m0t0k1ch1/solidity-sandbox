@@ -40,6 +40,9 @@ devDependencies:
   cz-conventional-changelog:
     specifier: 3.3.0
     version: 3.3.0(typescript@5.3.3)
+  ethers:
+    specifier: 6.9.1
+    version: 6.9.1
   hardhat:
     specifier: 2.19.3
     version: 2.19.3(ts-node@10.9.2)(typescript@5.3.3)
