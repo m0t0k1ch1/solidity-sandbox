@@ -4,7 +4,7 @@ pragma solidity 0.8.23;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
-contract MinimalNFT is ERC721URIStorage {
+contract NFT is ERC721URIStorage {
     uint256 private _nextTokenID;
 
     constructor() ERC721("MinimalNFT", "MNFT") {}
