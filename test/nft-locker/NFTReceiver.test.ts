@@ -6,17 +6,17 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import {
   NFT,
   NFT__factory,
-  NFTLocker,
-  NFTLocker__factory,
+  NFTReceiver,
+  NFTReceiver__factory,
 } from "../../typechain-types";
 
-describe("NFTLocker", () => {
+describe("NFTReceiver", () => {
   let runner: HardhatEthersSigner;
   let minter: HardhatEthersSigner;
   let receiver: HardhatEthersSigner;
 
   let nft: NFT;
-  let nftLocker: NFTLocker;
+  let nftReceiver: NFTReceiver;
 
   before(async () => {
     [runner, minter, receiver] = await ethers.getSigners();
@@ -24,27 +24,27 @@ describe("NFTLocker", () => {
 
   beforeEach(async () => {
     const nftFactory = (await ethers.getContractFactory(
-      "contracts/erc721-locker/NFT.sol:NFT"
+      "contracts/nft-locker/NFT.sol:NFT"
     )) as NFT__factory;
     nft = await nftFactory.deploy(minter.address);
     await nft.waitForDeployment();
 
-    const nftLockerFactory = (await ethers.getContractFactory(
-      "contracts/erc721-locker/NFTLocker.sol:NFTLocker"
-    )) as NFTLocker__factory;
-    nftLocker = await nftLockerFactory.deploy(receiver.address);
-    await nftLocker.waitForDeployment();
+    const nftReceiverFactory = (await ethers.getContractFactory(
+      "contracts/nft-locker/NFTReceiver.sol:NFTReceiver"
+    )) as NFTReceiver__factory;
+    nftReceiver = await nftReceiverFactory.deploy(receiver.address);
+    await nftReceiver.waitForDeployment();
   });
 
   describe("onERC721Received", () => {
     it("success", async () => {
-      const nftLockerAddress = await nftLocker.getAddress();
+      const nftReceiverAddress = await nftReceiver.getAddress();
 
-      await expect(nft.connect(minter).safeAirdrop(nftLockerAddress, ""))
+      await expect(nft.connect(minter).safeAirdrop(nftReceiverAddress, ""))
         .to.emit(nft, "Transfer")
-        .withArgs(ethers.ZeroAddress, nftLockerAddress, 0)
+        .withArgs(ethers.ZeroAddress, nftReceiverAddress, 0)
         .to.emit(nft, "Transfer")
-        .withArgs(nftLockerAddress, receiver.address, 0);
+        .withArgs(nftReceiverAddress, receiver.address, 0);
 
       expect(await nft.balanceOf(receiver.address)).to.equal(1);
       expect(await nft.ownerOf(0)).to.equal(receiver.address);

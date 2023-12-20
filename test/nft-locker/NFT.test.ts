@@ -17,7 +17,7 @@ describe("NFT", () => {
 
   beforeEach(async () => {
     const nftFactory = (await ethers.getContractFactory(
-      "contracts/erc721-locker/NFT.sol:NFT"
+      "contracts/nft-locker/NFT.sol:NFT"
     )) as NFT__factory;
     nft = await nftFactory.deploy(minter.address);
     await nft.waitForDeployment();
