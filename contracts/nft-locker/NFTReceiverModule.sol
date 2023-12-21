@@ -8,9 +8,9 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 
 import {INFT} from "./INFT.sol";
 
-error OperatorApprovalExists(uint256 operatorApprovalCount);
-
 contract NFTReceiverModule is Context, Ownable, IERC721Receiver {
+    error OperatorApprovalExists(uint256 operatorApprovalCount);
+
     constructor(address initialOwner_) Ownable(initialOwner_) {}
 
     function onERC721Received(
@@ -19,14 +19,16 @@ contract NFTReceiverModule is Context, Ownable, IERC721Receiver {
         uint256 tokenID_,
         bytes memory data_
     ) external override returns (bytes4) {
-        INFT nft = INFT(_msgSender());
+        INFT nftContract = INFT(_msgSender());
 
-        uint256 operatorApprovalCount = nft.operatorApprovalCountOf(owner());
+        uint256 operatorApprovalCount = nftContract.operatorApprovalCountOf(
+            owner()
+        );
         if (operatorApprovalCount > 0) {
             revert OperatorApprovalExists(operatorApprovalCount);
         }
 
-        nft.safeTransferFrom(address(this), owner(), tokenID_, data_);
+        nftContract.safeTransferFrom(address(this), owner(), tokenID_, data_);
 
         return this.onERC721Received.selector;
     }

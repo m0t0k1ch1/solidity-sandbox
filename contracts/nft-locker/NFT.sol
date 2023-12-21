@@ -7,7 +7,9 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
-contract NFT is Context, Ownable, ERC721URIStorage {
+import {INFT} from "./INFT.sol";
+
+contract NFT is Context, Ownable, ERC721URIStorage, INFT {
     uint256 private _nextTokenID;
     mapping(address owner => uint256) private _operatorApprovalCounts;
 
@@ -17,7 +19,7 @@ contract NFT is Context, Ownable, ERC721URIStorage {
 
     function safeAirdrop(
         address to_,
-        string memory tokenURI_
+        string calldata tokenURI_
     ) external onlyOwner {
         _safeMint(to_, _nextTokenID);
         _setTokenURI(_nextTokenID, tokenURI_);

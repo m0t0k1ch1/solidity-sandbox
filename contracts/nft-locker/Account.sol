@@ -3,21 +3,10 @@ pragma solidity 0.8.23;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-error UnauthorizedModule(address module);
+import {IAccount} from "./IAccount.sol";
 
-contract Account is Context, Ownable, IERC721Receiver {
-    event ModuleAuthorized(address indexed module);
-    event ModuleUnauthorized(address indexed module);
-
-    event Executed(
-        address indexed module,
-        address indexed to,
-        uint256 value,
-        bytes data
-    );
-
+contract Account is Context, Ownable, IAccount {
     mapping(address module => bool) private _isModuleAuthorizeds;
 
     constructor(
@@ -36,7 +25,11 @@ contract Account is Context, Ownable, IERC721Receiver {
         _;
     }
 
-    function isModuleAuthorized(address module_) public view returns (bool) {
+    function owner() public view override(Ownable, IAccount) returns (address) {
+        return super.owner();
+    }
+
+    function isModuleAuthorized(address module_) external view returns (bool) {
         return _isModuleAuthorizeds[module_];
     }
 
@@ -56,7 +49,7 @@ contract Account is Context, Ownable, IERC721Receiver {
         address to_,
         uint256 value_,
         bytes calldata data_
-    ) external payable onlyAuthorizedModule returns (bytes memory) {
+    ) external onlyAuthorizedModule returns (bytes memory) {
         (bool success, bytes memory result) = to_.call{value: value_}(data_);
         if (!success) {
             assembly {
