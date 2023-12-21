@@ -9,6 +9,9 @@ const config: HardhatUserConfig = {
       url: "https://rpc.sepolia.org",
     },
   },
+  gasReporter: {
+    enabled: true,
+  },
 };
 
 export default config;

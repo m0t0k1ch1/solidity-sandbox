@@ -8,11 +8,16 @@ import { NFT, NFT__factory } from "../../typechain-types";
 describe("NFT", () => {
   let runner: HardhatEthersSigner;
   let minter: HardhatEthersSigner;
+  let receiver: HardhatEthersSigner;
+  let operator1: HardhatEthersSigner;
+  let operator2: HardhatEthersSigner;
+  let operator3: HardhatEthersSigner;
 
   let nft: NFT;
 
   before(async () => {
-    [runner, minter] = await ethers.getSigners();
+    [runner, minter, receiver, operator1, operator2, operator3] =
+      await ethers.getSigners();
   });
 
   beforeEach(async () => {
@@ -23,14 +28,110 @@ describe("NFT", () => {
     await nft.waitForDeployment();
   });
 
+  it("initial state", async () => {
+    expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(0);
+  });
+
   describe("mint", () => {
     it("success", async () => {
-      await expect(nft.connect(minter).safeAirdrop(minter.address, ""))
+      await expect(nft.connect(minter).safeAirdrop(receiver.address, ""))
         .to.emit(nft, "Transfer")
-        .withArgs(ethers.ZeroAddress, minter.address, 0);
+        .withArgs(ethers.ZeroAddress, receiver.address, 0);
 
-      expect(await nft.balanceOf(minter.address)).to.equal(1);
-      expect(await nft.ownerOf(0)).to.equal(minter.address);
+      expect(await nft.balanceOf(receiver.address)).to.equal(1);
+      expect(await nft.ownerOf(0)).to.equal(receiver.address);
+    });
+  });
+
+  describe("setApprovalForAll", () => {
+    it("success", async () => {
+      // approve operator1
+      {
+        await expect(
+          nft.connect(receiver).setApprovalForAll(operator1.address, true)
+        )
+          .to.emit(nft, "ApprovalForAll")
+          .withArgs(receiver.address, operator1.address, true);
+
+        expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(1);
+      }
+
+      // approve operator1 again
+      {
+        await expect(
+          nft.connect(receiver).setApprovalForAll(operator1.address, true)
+        )
+          .to.emit(nft, "ApprovalForAll")
+          .withArgs(receiver.address, operator1.address, true);
+
+        expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(1);
+      }
+
+      // approve operator2
+      {
+        await expect(
+          nft.connect(receiver).setApprovalForAll(operator2.address, true)
+        )
+          .to.emit(nft, "ApprovalForAll")
+          .withArgs(receiver.address, operator2.address, true);
+
+        expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(2);
+      }
+
+      // approve operator3
+      {
+        await expect(
+          nft.connect(receiver).setApprovalForAll(operator3.address, true)
+        )
+          .to.emit(nft, "ApprovalForAll")
+          .withArgs(receiver.address, operator3.address, true);
+
+        expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(3);
+      }
+
+      // revoke operator1
+      {
+        await expect(
+          nft.connect(receiver).setApprovalForAll(operator1.address, false)
+        )
+          .to.emit(nft, "ApprovalForAll")
+          .withArgs(receiver.address, operator1.address, false);
+
+        expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(2);
+      }
+
+      // revoke operator1 again
+      {
+        await expect(
+          nft.connect(receiver).setApprovalForAll(operator1.address, false)
+        )
+          .to.emit(nft, "ApprovalForAll")
+          .withArgs(receiver.address, operator1.address, false);
+
+        expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(2);
+      }
+
+      // revoke operator2
+      {
+        await expect(
+          nft.connect(receiver).setApprovalForAll(operator2.address, false)
+        )
+          .to.emit(nft, "ApprovalForAll")
+          .withArgs(receiver.address, operator2.address, false);
+
+        expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(1);
+      }
+
+      // revoke operator3
+      {
+        await expect(
+          nft.connect(receiver).setApprovalForAll(operator3.address, false)
+        )
+          .to.emit(nft, "ApprovalForAll")
+          .withArgs(receiver.address, operator3.address, false);
+
+        expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(0);
+      }
     });
   });
 });
