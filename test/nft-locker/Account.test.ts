@@ -90,25 +90,23 @@ describe("Account", () => {
     let nftAddress: string;
 
     beforeEach(async () => {
-      {
-        const nftFactory = (await ethers.getContractFactory(
-          "contracts/nft-locker/NFT.sol:NFT"
-        )) as NFT__factory;
-        nft = await nftFactory.deploy(nftMinter.address);
-        await nft.waitForDeployment();
-        nftAddress = await nft.getAddress();
-      }
+      const nftFactory = (await ethers.getContractFactory(
+        "contracts/nft-locker/NFT.sol:NFT"
+      )) as NFT__factory;
+      nft = await nftFactory.deploy(nftMinter.address);
+      await nft.waitForDeployment();
+      nftAddress = await nft.getAddress();
 
-      await nft.connect(nftMinter).safeAirdrop(accountAddress, "");
+      await nft.connect(nftMinter).safeAirdrop(accountAddress, "", "0x");
     });
 
     it("failure: UnauthorizedModule", async () => {
       const toAddress = nftAddress;
       const value = 0;
-      const data = nft.interface.encodeFunctionData("approve", [
-        other.address,
-        0,
-      ]);
+      const data = nft.interface.encodeFunctionData(
+        "safeTransferFrom(address,address,uint256)",
+        [accountAddress, other.address, 0]
+      );
 
       await expect(
         account.connect(dummyModule2).execute(toAddress, value, data)
@@ -120,20 +118,21 @@ describe("Account", () => {
     it("success", async () => {
       const toAddress = nftAddress;
       const value = 0;
-      const data = nft.interface.encodeFunctionData("approve", [
-        other.address,
-        0,
-      ]);
+      const data = nft.interface.encodeFunctionData(
+        "safeTransferFrom(address,address,uint256)",
+        [accountAddress, other.address, 0]
+      );
 
       await expect(
         account.connect(dummyModule1).execute(toAddress, value, data)
       )
         .to.emit(account, "Executed")
         .withArgs(dummyModule1.address, toAddress, value, data)
-        .to.emit(nft, "Approval")
+        .to.emit(nft, "Transfer")
         .withArgs(accountAddress, other.address, 0);
 
-      expect(await nft.getApproved(0)).to.equal(other.address);
+      expect(await nft.balanceOf(other.address)).to.equal(1);
+      expect(await nft.ownerOf(0)).to.equal(other.address);
     });
   });
 });

@@ -37,7 +37,7 @@ describe("NFT", () => {
 
   describe("safeAirdrop", () => {
     it("success", async () => {
-      await expect(nft.connect(minter).safeAirdrop(receiver.address, ""))
+      await expect(nft.connect(minter).safeAirdrop(receiver.address, "", "0x"))
         .to.emit(nft, "Transfer")
         .withArgs(ethers.ZeroAddress, receiver.address, 0);
 

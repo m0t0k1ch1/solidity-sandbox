@@ -27,9 +27,10 @@ contract NFT is Context, ERC721URIStorage, INFT {
 
     function safeAirdrop(
         address to_,
-        string calldata tokenURI_
+        string calldata tokenURI_,
+        bytes calldata data_
     ) external onlyMinter {
-        _safeMint(to_, _nextTokenID);
+        _safeMint(to_, _nextTokenID, data_);
         _setTokenURI(_nextTokenID, tokenURI_);
         _nextTokenID++;
     }

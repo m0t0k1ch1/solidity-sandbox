@@ -17,8 +17,6 @@ import {
 } from "../../typechain-types";
 
 describe("NFTReceiverModule", () => {
-  const NFT_LOCK_DURATION = 60;
-
   let runner: HardhatEthersSigner;
   let dummyModule: HardhatEthersSigner;
   let accountOwner: HardhatEthersSigner;
@@ -33,6 +31,9 @@ describe("NFTReceiverModule", () => {
 
   let nftReceiverModule: NFTReceiverModule;
   let nftReceiverModuleAddress: string;
+
+  let nft: NFT;
+  let nftAddress: string;
 
   before(async () => {
     [runner, dummyModule, accountOwner, nftMinter, other] =
@@ -66,8 +67,7 @@ describe("NFTReceiverModule", () => {
       )) as NFTReceiverModule__factory;
       nftReceiverModule = await nftReceiverModuleFactory.deploy(
         accountAddress,
-        relayerModuleAddress,
-        NFT_LOCK_DURATION
+        relayerModuleAddress
       );
       await nftReceiverModule.waitForDeployment();
       nftReceiverModuleAddress = await nftReceiverModule.getAddress();
@@ -76,53 +76,22 @@ describe("NFTReceiverModule", () => {
         .connect(dummyModule)
         .authorizeModule(nftReceiverModuleAddress);
     }
-  });
-
-  it("initial state", async () => {
-    expect(await nftReceiverModule.owner()).to.equal(accountAddress);
-    expect(await nftReceiverModule.nftLocker()).to.equal(relayerModuleAddress);
-    expect(await nftReceiverModule.nftLockDuration()).to.equal(60);
-  });
-
-  describe("setNFTLocker", () => {
-    it("failure: OwnableUnauthorizedAccount", async () => {
-      await expect(
-        nftReceiverModule.setNFTLocker(dummyModule.address)
-      ).to.be.revertedWithCustomError(
-        nftReceiverModule,
-        "OwnableUnauthorizedAccount"
-      );
-    });
-
-    it("success", async () => {
-      const data = nftReceiverModule.interface.encodeFunctionData(
-        "setNFTLocker",
-        [dummyModule.address]
-      );
-
-      await expect(
-        account.connect(dummyModule).execute(nftReceiverModuleAddress, 0, data)
-      )
-        .to.emit(account, "Executed")
-        .withArgs(dummyModule.address, nftReceiverModuleAddress, 0, data);
-
-      expect(await nftReceiverModule.nftLocker()).to.equal(dummyModule.address);
-    });
-  });
-
-  describe("onERC721Received", () => {
-    let nft: NFT;
-    let nftAddress: string;
-
-    beforeEach(async () => {
+    {
       const nftFactory = (await ethers.getContractFactory(
         "contracts/nft-locker/NFT.sol:NFT"
       )) as NFT__factory;
       nft = await nftFactory.deploy(nftMinter.address);
       await nft.waitForDeployment();
       nftAddress = await nft.getAddress();
-    });
+    }
+  });
 
+  it("initial state", async () => {
+    expect(await nftReceiverModule.owner()).to.equal(accountAddress);
+    expect(await nftReceiverModule.nftLocker()).to.equal(relayerModuleAddress);
+  });
+
+  describe("onERC721Received", () => {
     it("failure: OperatorApprovalExists", async () => {
       {
         await account
@@ -138,7 +107,7 @@ describe("NFTReceiverModule", () => {
       }
       {
         await expect(
-          nft.connect(nftMinter).safeAirdrop(nftReceiverModuleAddress, "")
+          nft.connect(nftMinter).safeAirdrop(nftReceiverModuleAddress, "", "0x")
         )
           .to.be.revertedWithCustomError(
             nftReceiverModule,
@@ -150,11 +119,21 @@ describe("NFTReceiverModule", () => {
 
     it("success", async () => {
       {
+        const nftLockDuration = 60;
+
         const txResp = await nft
           .connect(nftMinter)
-          .safeAirdrop(nftReceiverModuleAddress, "");
+          .safeAirdrop(
+            nftReceiverModuleAddress,
+            "",
+            ethers.AbiCoder.defaultAbiCoder().encode(
+              ["uint256"],
+              [nftLockDuration]
+            )
+          );
 
         const now = await utils.now();
+        const nftLockExpireAt = now + nftLockDuration;
 
         expect(txResp)
           .to.emit(account, "Executed")
@@ -164,18 +143,45 @@ describe("NFTReceiverModule", () => {
             0,
             relayerModule.interface.encodeFunctionData("lockNFT", [
               nftAddress,
-              now + NFT_LOCK_DURATION,
+              nftLockExpireAt,
             ])
           )
           .to.emit(relayerModule, "NFTLocked")
-          .withArgs(accountAddress, nftAddress, now + NFT_LOCK_DURATION)
+          .withArgs(accountAddress, nftAddress, nftLockExpireAt)
           .to.emit(nft, "Transfer")
           .withArgs(ethers.ZeroAddress, nftReceiverModuleAddress, 0)
           .to.emit(nft, "Transfer")
           .withArgs(nftReceiverModuleAddress, accountAddress, 0);
 
+        expect(
+          await relayerModule.getNFTLockExpireAt(accountAddress, nftAddress)
+        ).to.equal(nftLockExpireAt);
         expect(await nft.balanceOf(accountAddress)).to.equal(1);
         expect(await nft.ownerOf(0)).to.equal(accountAddress);
+      }
+      {
+        const nonce = await relayerModule.nonceOf(accountAddress);
+        const toAddress = nftAddress;
+        const value = 0;
+        const data = nft.interface.encodeFunctionData(
+          "safeTransferFrom(address,address,uint256)",
+          [accountAddress, other.address, 0]
+        );
+
+        const opHash = await utils.getOperationHash(
+          relayerModuleAddress,
+          accountAddress,
+          nonce,
+          toAddress,
+          value,
+          data
+        );
+
+        const sig = await accountOwner.signMessage(ethers.getBytes(opHash));
+
+        await expect(
+          relayerModule.execute(accountAddress, toAddress, value, data, sig)
+        ).to.be.revertedWithCustomError(relayerModule, "InvalidOperation");
       }
     });
   });
