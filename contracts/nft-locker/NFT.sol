@@ -9,7 +9,7 @@ import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/
 
 contract NFT is Context, Ownable, ERC721URIStorage {
     uint256 private _nextTokenID;
-    mapping(address => uint256) private _operatorApprovalCounts;
+    mapping(address owner => uint256) private _operatorApprovalCounts;
 
     constructor(
         address initialOwner_
