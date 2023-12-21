@@ -6,19 +6,23 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-import {INFT} from "./INFT.sol";
+import {IAccount} from "./IAccount.sol";
 import {INFTLocker} from "./INFTLocker.sol";
+import {INFT} from "./INFT.sol";
 
 contract NFTReceiverModule is Context, Ownable, IERC721Receiver {
     address public nftLocker;
+    uint256 public nftLockDuration;
 
     error OperatorApprovalExists(uint256 operatorApprovalCount);
 
     constructor(
         address initialOwner_,
-        address nftLocker_
+        address nftLocker_,
+        uint256 nftLockDuration_
     ) Ownable(initialOwner_) {
         nftLocker = nftLocker_;
+        nftLockDuration = nftLockDuration_;
     }
 
     function setNFTLocker(address nftLocker_) external onlyOwner {
@@ -39,6 +43,16 @@ contract NFTReceiverModule is Context, Ownable, IERC721Receiver {
         if (operatorApprovalCount > 0) {
             revert OperatorApprovalExists(operatorApprovalCount);
         }
+
+        IAccount(owner()).execute(
+            nftLocker,
+            0,
+            abi.encodeWithSignature(
+                "lockNFT(address,uint256)",
+                _msgSender(),
+                block.timestamp + nftLockDuration
+            )
+        );
 
         nftContract.safeTransferFrom(address(this), owner(), tokenID_, data_);
 

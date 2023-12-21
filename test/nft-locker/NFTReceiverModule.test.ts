@@ -3,6 +3,8 @@ import { ethers } from "hardhat";
 
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
+import * as utils from "./utils";
+
 import {
   RelayerModule,
   RelayerModule__factory,
@@ -15,6 +17,8 @@ import {
 } from "../../typechain-types";
 
 describe("NFTReceiverModule", () => {
+  const NFT_LOCK_DURATION = 60;
+
   let runner: HardhatEthersSigner;
   let dummyModule: HardhatEthersSigner;
   let accountOwner: HardhatEthersSigner;
@@ -62,7 +66,8 @@ describe("NFTReceiverModule", () => {
       )) as NFTReceiverModule__factory;
       nftReceiverModule = await nftReceiverModuleFactory.deploy(
         accountAddress,
-        relayerModuleAddress
+        relayerModuleAddress,
+        NFT_LOCK_DURATION
       );
       await nftReceiverModule.waitForDeployment();
       nftReceiverModuleAddress = await nftReceiverModule.getAddress();
@@ -76,6 +81,7 @@ describe("NFTReceiverModule", () => {
   it("initial state", async () => {
     expect(await nftReceiverModule.owner()).to.equal(accountAddress);
     expect(await nftReceiverModule.nftLocker()).to.equal(relayerModuleAddress);
+    expect(await nftReceiverModule.nftLockDuration()).to.equal(60);
   });
 
   describe("setNFTLocker", () => {
@@ -143,16 +149,34 @@ describe("NFTReceiverModule", () => {
     });
 
     it("success", async () => {
-      await expect(
-        nft.connect(nftMinter).safeAirdrop(nftReceiverModuleAddress, "")
-      )
-        .to.emit(nft, "Transfer")
-        .withArgs(ethers.ZeroAddress, nftReceiverModuleAddress, 0)
-        .to.emit(nft, "Transfer")
-        .withArgs(nftReceiverModuleAddress, accountAddress, 0);
+      {
+        const txResp = await nft
+          .connect(nftMinter)
+          .safeAirdrop(nftReceiverModuleAddress, "");
 
-      expect(await nft.balanceOf(accountAddress)).to.equal(1);
-      expect(await nft.ownerOf(0)).to.equal(accountAddress);
+        const now = await utils.now();
+
+        expect(txResp)
+          .to.emit(account, "Executed")
+          .withArgs(
+            nftReceiverModuleAddress,
+            relayerModuleAddress,
+            0,
+            relayerModule.interface.encodeFunctionData("lockNFT", [
+              nftAddress,
+              now + NFT_LOCK_DURATION,
+            ])
+          )
+          .to.emit(relayerModule, "NFTLocked")
+          .withArgs(accountAddress, nftAddress, now + NFT_LOCK_DURATION)
+          .to.emit(nft, "Transfer")
+          .withArgs(ethers.ZeroAddress, nftReceiverModuleAddress, 0)
+          .to.emit(nft, "Transfer")
+          .withArgs(nftReceiverModuleAddress, accountAddress, 0);
+
+        expect(await nft.balanceOf(accountAddress)).to.equal(1);
+        expect(await nft.ownerOf(0)).to.equal(accountAddress);
+      }
     });
   });
 });
