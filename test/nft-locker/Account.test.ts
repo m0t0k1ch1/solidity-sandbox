@@ -12,16 +12,17 @@ import {
 
 describe("Account", () => {
   let runner: HardhatEthersSigner;
-  let owner: HardhatEthersSigner;
+  let accountOwner: HardhatEthersSigner;
   let dummyModule1: HardhatEthersSigner;
   let dummyModule2: HardhatEthersSigner;
-  let minter: HardhatEthersSigner;
+  let nftMinter: HardhatEthersSigner;
   let other: HardhatEthersSigner;
 
   let account: Account;
+  let accountAddress: string;
 
   before(async () => {
-    [runner, owner, dummyModule1, dummyModule2, minter, other] =
+    [runner, accountOwner, dummyModule1, dummyModule2, nftMinter, other] =
       await ethers.getSigners();
   });
 
@@ -29,35 +30,38 @@ describe("Account", () => {
     const accountFactory = (await ethers.getContractFactory(
       "contracts/nft-locker/Account.sol:Account"
     )) as Account__factory;
-    account = await accountFactory.deploy(owner.address, [
+    account = await accountFactory.deploy(accountOwner.address, [
       dummyModule1.address,
     ]);
     await account.waitForDeployment();
+    accountAddress = await account.getAddress();
   });
 
   it("initial state", async () => {
-    expect(await account.owner()).to.equal(owner.address);
+    expect(await account.owner()).to.equal(accountOwner.address);
     expect(await account.isModuleAuthorized(dummyModule1.address)).to.be.true;
     expect(await account.isModuleAuthorized(dummyModule2.address)).to.be.false;
   });
 
   describe("authorizeModule, unauthorizedModule", () => {
     it("failure: UnauthorizedModule", async () => {
-      await expect(
-        account.connect(dummyModule2).authorizeModule(dummyModule2.address)
-      )
-        .to.be.revertedWithCustomError(account, "UnauthorizedModule")
-        .withArgs(dummyModule2.address);
-
-      await expect(
-        account.connect(dummyModule2).unauthorizeModule(dummyModule1.address)
-      )
-        .to.be.revertedWithCustomError(account, "UnauthorizedModule")
-        .withArgs(dummyModule2.address);
+      {
+        await expect(
+          account.connect(dummyModule2).authorizeModule(dummyModule2.address)
+        )
+          .to.be.revertedWithCustomError(account, "UnauthorizedModule")
+          .withArgs(dummyModule2.address);
+      }
+      {
+        await expect(
+          account.connect(dummyModule2).unauthorizeModule(dummyModule1.address)
+        )
+          .to.be.revertedWithCustomError(account, "UnauthorizedModule")
+          .withArgs(dummyModule2.address);
+      }
     });
 
     it("success", async () => {
-      // authorize dummy module 2 by dummy module 1
       {
         await expect(
           account.connect(dummyModule1).authorizeModule(dummyModule2.address)
@@ -68,8 +72,6 @@ describe("Account", () => {
         expect(await account.isModuleAuthorized(dummyModule2.address)).to.be
           .true;
       }
-
-      // unauthorize dummy module 1 by dummy module 2
       {
         await expect(
           account.connect(dummyModule2).unauthorizeModule(dummyModule1.address)
@@ -85,19 +87,23 @@ describe("Account", () => {
 
   describe("execute", () => {
     let nft: NFT;
+    let nftAddress: string;
 
     beforeEach(async () => {
-      const nftFactory = (await ethers.getContractFactory(
-        "contracts/nft-locker/NFT.sol:NFT"
-      )) as NFT__factory;
-      nft = await nftFactory.deploy(minter.address);
-      await nft.waitForDeployment();
+      {
+        const nftFactory = (await ethers.getContractFactory(
+          "contracts/nft-locker/NFT.sol:NFT"
+        )) as NFT__factory;
+        nft = await nftFactory.deploy(nftMinter.address);
+        await nft.waitForDeployment();
+        nftAddress = await nft.getAddress();
+      }
 
-      await nft.connect(minter).safeAirdrop(await account.getAddress(), "");
+      await nft.connect(nftMinter).safeAirdrop(accountAddress, "");
     });
 
     it("failure: UnauthorizedModule", async () => {
-      const toAddress = await nft.getAddress();
+      const toAddress = nftAddress;
       const value = 0;
       const data = nft.interface.encodeFunctionData("approve", [
         other.address,
@@ -112,7 +118,7 @@ describe("Account", () => {
     });
 
     it("success", async () => {
-      const toAddress = await nft.getAddress();
+      const toAddress = nftAddress;
       const value = 0;
       const data = nft.interface.encodeFunctionData("approve", [
         other.address,
@@ -123,9 +129,9 @@ describe("Account", () => {
         account.connect(dummyModule1).execute(toAddress, value, data)
       )
         .to.emit(account, "Executed")
-        .withArgs(await dummyModule1.getAddress(), toAddress, value, data)
+        .withArgs(dummyModule1.address, toAddress, value, data)
         .to.emit(nft, "Approval")
-        .withArgs(await account.getAddress(), other.address, 0);
+        .withArgs(accountAddress, other.address, 0);
 
       expect(await nft.getApproved(0)).to.equal(other.address);
     });

@@ -7,11 +7,23 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 import {INFT} from "./INFT.sol";
+import {INFTLocker} from "./INFTLocker.sol";
 
 contract NFTReceiverModule is Context, Ownable, IERC721Receiver {
+    address public nftLocker;
+
     error OperatorApprovalExists(uint256 operatorApprovalCount);
 
-    constructor(address initialOwner_) Ownable(initialOwner_) {}
+    constructor(
+        address initialOwner_,
+        address nftLocker_
+    ) Ownable(initialOwner_) {
+        nftLocker = nftLocker_;
+    }
+
+    function setNFTLocker(address nftLocker_) external onlyOwner {
+        nftLocker = nftLocker_;
+    }
 
     function onERC721Received(
         address,

@@ -14,6 +14,7 @@ describe("NFT", () => {
   let operator3: HardhatEthersSigner;
 
   let nft: NFT;
+  let nftAddress: string;
 
   before(async () => {
     [runner, minter, receiver, operator1, operator2, operator3] =
@@ -26,13 +27,14 @@ describe("NFT", () => {
     )) as NFT__factory;
     nft = await nftFactory.deploy(minter.address);
     await nft.waitForDeployment();
+    nftAddress = await nft.getAddress();
   });
 
   it("initial state", async () => {
     expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(0);
   });
 
-  describe("mint", () => {
+  describe("safeAirdrop", () => {
     it("success", async () => {
       await expect(nft.connect(minter).safeAirdrop(receiver.address, ""))
         .to.emit(nft, "Transfer")
@@ -45,7 +47,6 @@ describe("NFT", () => {
 
   describe("setApprovalForAll", () => {
     it("success", async () => {
-      // approve operator1
       {
         await expect(
           nft.connect(receiver).setApprovalForAll(operator1.address, true)
@@ -55,8 +56,6 @@ describe("NFT", () => {
 
         expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(1);
       }
-
-      // approve operator1 again
       {
         await expect(
           nft.connect(receiver).setApprovalForAll(operator1.address, true)
@@ -66,8 +65,6 @@ describe("NFT", () => {
 
         expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(1);
       }
-
-      // approve operator2
       {
         await expect(
           nft.connect(receiver).setApprovalForAll(operator2.address, true)
@@ -77,8 +74,6 @@ describe("NFT", () => {
 
         expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(2);
       }
-
-      // approve operator3
       {
         await expect(
           nft.connect(receiver).setApprovalForAll(operator3.address, true)
@@ -88,8 +83,6 @@ describe("NFT", () => {
 
         expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(3);
       }
-
-      // revoke operator1
       {
         await expect(
           nft.connect(receiver).setApprovalForAll(operator1.address, false)
@@ -99,8 +92,6 @@ describe("NFT", () => {
 
         expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(2);
       }
-
-      // revoke operator1 again
       {
         await expect(
           nft.connect(receiver).setApprovalForAll(operator1.address, false)
@@ -110,8 +101,6 @@ describe("NFT", () => {
 
         expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(2);
       }
-
-      // revoke operator2
       {
         await expect(
           nft.connect(receiver).setApprovalForAll(operator2.address, false)
@@ -121,8 +110,6 @@ describe("NFT", () => {
 
         expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(1);
       }
-
-      // revoke operator3
       {
         await expect(
           nft.connect(receiver).setApprovalForAll(operator3.address, false)

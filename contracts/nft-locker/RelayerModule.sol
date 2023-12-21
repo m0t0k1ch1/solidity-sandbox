@@ -8,8 +8,9 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 import {IAccount} from "./IAccount.sol";
+import {INFTLocker} from "./INFTLocker.sol";
 
-contract RelayerModule is Context {
+contract RelayerModule is Context, INFTLocker {
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
 

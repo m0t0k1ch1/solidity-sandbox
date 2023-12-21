@@ -18,86 +18,90 @@ import {
 
 describe("RelayerModule", () => {
   let runner: HardhatEthersSigner;
-  let owner: HardhatEthersSigner;
+  let accountOwner: HardhatEthersSigner;
   let dummyModule: HardhatEthersSigner;
-  let minter: HardhatEthersSigner;
+  let nftMinter: HardhatEthersSigner;
   let other: HardhatEthersSigner;
 
   let account: Account;
+  let accountAddress: string;
+
   let relayerModule: RelayerModule;
+  let relayerModuleAddress: string;
 
   before(async () => {
-    [runner, owner, dummyModule, minter, other] = await ethers.getSigners();
+    [runner, accountOwner, dummyModule, nftMinter, other] =
+      await ethers.getSigners();
   });
 
   beforeEach(async () => {
-    const relayerModuleFactory = (await ethers.getContractFactory(
-      "contracts/nft-locker/RelayerModule.sol:RelayerModule"
-    )) as RelayerModule__factory;
-    relayerModule = await relayerModuleFactory.deploy();
-    await relayerModule.waitForDeployment();
+    {
+      const accountFactory = (await ethers.getContractFactory(
+        "contracts/nft-locker/Account.sol:Account"
+      )) as Account__factory;
+      account = await accountFactory.deploy(accountOwner.address, [
+        dummyModule.address,
+      ]);
+      await account.waitForDeployment();
+      accountAddress = await account.getAddress();
+    }
+    {
+      const relayerModuleFactory = (await ethers.getContractFactory(
+        "contracts/nft-locker/RelayerModule.sol:RelayerModule"
+      )) as RelayerModule__factory;
+      relayerModule = await relayerModuleFactory.deploy();
+      await relayerModule.waitForDeployment();
+      relayerModuleAddress = await relayerModule.getAddress();
 
-    const accountFactory = (await ethers.getContractFactory(
-      "contracts/nft-locker/Account.sol:Account"
-    )) as Account__factory;
-    account = await accountFactory.deploy(owner.address, [
-      await relayerModule.getAddress(),
-      dummyModule.address,
-    ]);
-    await account.waitForDeployment();
+      await account.connect(dummyModule).authorizeModule(relayerModuleAddress);
+    }
   });
 
   describe("execute", () => {
     let nft: NFT;
+    let nftAddress: string;
 
     beforeEach(async () => {
-      const nftFactory = (await ethers.getContractFactory(
-        "contracts/nft-locker/NFT.sol:NFT"
-      )) as NFT__factory;
-      nft = await nftFactory.deploy(minter.address);
-      await nft.waitForDeployment();
+      {
+        const nftFactory = (await ethers.getContractFactory(
+          "contracts/nft-locker/NFT.sol:NFT"
+        )) as NFT__factory;
+        nft = await nftFactory.deploy(nftMinter.address);
+        await nft.waitForDeployment();
+        nftAddress = await nft.getAddress();
+      }
 
-      await nft.connect(minter).safeAirdrop(await account.getAddress(), "");
+      await nft.connect(nftMinter).safeAirdrop(accountAddress, "");
     });
 
     it("failure: InvalidSignature", async () => {
-      const relayerModuleAddress = await relayerModule.getAddress();
-      const accountAddress = await account.getAddress();
+      const nonce = await relayerModule.nonceOf(accountAddress);
+      const toAddress = nftAddress;
+      const value = 0;
+      const data = nft.interface.encodeFunctionData("approve", [
+        other.address,
+        0,
+      ]);
 
-      {
-        const nonce = await relayerModule.nonceOf(accountAddress);
-        const toAddress = await nft.getAddress();
-        const value = 0;
-        const data = nft.interface.encodeFunctionData("approve", [
-          other.address,
-          0,
-        ]);
+      const opHash = await utils.getOperationHash(
+        relayerModuleAddress,
+        accountAddress,
+        nonce,
+        toAddress,
+        value,
+        data
+      );
 
-        const opHash = await utils.getOperationHash(
-          relayerModuleAddress,
-          accountAddress,
-          nonce,
-          toAddress,
-          value,
-          data
-        );
+      const sig = await other.signMessage(ethers.getBytes(opHash));
 
-        const sig = await other.signMessage(ethers.getBytes(opHash));
-
-        await expect(
-          relayerModule.execute(accountAddress, toAddress, value, data, sig)
-        ).to.be.revertedWithCustomError(relayerModule, "InvalidSignature");
-      }
+      await expect(
+        relayerModule.execute(accountAddress, toAddress, value, data, sig)
+      ).to.be.revertedWithCustomError(relayerModule, "InvalidSignature");
     });
 
     it("failure: InvalidOperation", async () => {
-      const relayerModuleAddress = await relayerModule.getAddress();
-      const accountAddress = await account.getAddress();
-      const nftAddress = await nft.getAddress();
-      const nftLockDuration = 60;
-
       {
-        const nftLockExpireAt = (await utils.now()) + nftLockDuration;
+        const nftLockExpireAt = (await utils.now()) + 60;
         const data = relayerModule.interface.encodeFunctionData("lockNFT", [
           nftAddress,
           nftLockExpireAt,
@@ -133,7 +137,7 @@ describe("RelayerModule", () => {
           data
         );
 
-        const sig = await owner.signMessage(ethers.getBytes(opHash));
+        const sig = await accountOwner.signMessage(ethers.getBytes(opHash));
 
         await expect(
           relayerModule.execute(accountAddress, toAddress, value, data, sig)
@@ -142,39 +146,34 @@ describe("RelayerModule", () => {
     });
 
     it("success", async () => {
-      const relayerModuleAddress = await relayerModule.getAddress();
-      const accountAddress = await account.getAddress();
+      const nonce = await relayerModule.nonceOf(accountAddress);
+      const toAddress = nftAddress;
+      const value = 0;
+      const data = nft.interface.encodeFunctionData("approve", [
+        other.address,
+        0,
+      ]);
 
-      {
-        const nonce = await relayerModule.nonceOf(accountAddress);
-        const toAddress = await nft.getAddress();
-        const value = 0;
-        const data = nft.interface.encodeFunctionData("approve", [
-          other.address,
-          0,
-        ]);
+      const opHash = await utils.getOperationHash(
+        relayerModuleAddress,
+        accountAddress,
+        nonce,
+        toAddress,
+        value,
+        data
+      );
 
-        const opHash = await utils.getOperationHash(
-          relayerModuleAddress,
-          accountAddress,
-          nonce,
-          toAddress,
-          value,
-          data
-        );
+      const sig = await accountOwner.signMessage(ethers.getBytes(opHash));
 
-        const sig = await owner.signMessage(ethers.getBytes(opHash));
+      await expect(
+        relayerModule.execute(accountAddress, toAddress, value, data, sig)
+      )
+        .to.emit(relayerModule, "Executed")
+        .withArgs(accountAddress, opHash, true, anyValue)
+        .to.emit(nft, "Approval")
+        .withArgs(accountAddress, other.address, 0);
 
-        await expect(
-          relayerModule.execute(accountAddress, toAddress, value, data, sig)
-        )
-          .to.emit(relayerModule, "Executed")
-          .withArgs(accountAddress, opHash, true, anyValue)
-          .to.emit(nft, "Approval")
-          .withArgs(accountAddress, other.address, 0);
-
-        expect(await nft.getApproved(0)).to.be.equal(other.address);
-      }
+      expect(await nft.getApproved(0)).to.be.equal(other.address);
     });
   });
 });
