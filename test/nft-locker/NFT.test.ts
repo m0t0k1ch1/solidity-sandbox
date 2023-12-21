@@ -31,6 +31,7 @@ describe("NFT", () => {
   });
 
   it("initial state", async () => {
+    expect(await nft.minter()).to.equal(minter.address);
     expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(0);
   });
 
