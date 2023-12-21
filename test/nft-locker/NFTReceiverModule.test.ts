@@ -6,8 +6,8 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import {
   NFT,
   NFT__factory,
-  NFTReceiver,
-  NFTReceiver__factory,
+  NFTReceiverModule,
+  NFTReceiverModule__factory,
 } from "../../typechain-types";
 
 describe("NFTReceiver", () => {
@@ -17,7 +17,7 @@ describe("NFTReceiver", () => {
   let operator: HardhatEthersSigner;
 
   let nft: NFT;
-  let nftReceiver: NFTReceiver;
+  let nftReceiverModule: NFTReceiverModule;
 
   before(async () => {
     [runner, minter, receiver, operator] = await ethers.getSigners();
@@ -30,32 +30,39 @@ describe("NFTReceiver", () => {
     nft = await nftFactory.deploy(minter.address);
     await nft.waitForDeployment();
 
-    const nftReceiverFactory = (await ethers.getContractFactory(
-      "contracts/nft-locker/NFTReceiver.sol:NFTReceiver"
-    )) as NFTReceiver__factory;
-    nftReceiver = await nftReceiverFactory.deploy(receiver.address);
-    await nftReceiver.waitForDeployment();
+    const nftReceiverModuleFactory = (await ethers.getContractFactory(
+      "contracts/nft-locker/NFTReceiverModule.sol:NFTReceiverModule"
+    )) as NFTReceiverModule__factory;
+    nftReceiverModule = await nftReceiverModuleFactory.deploy(receiver.address);
+    await nftReceiverModule.waitForDeployment();
   });
 
   describe("onERC721Received", () => {
     it("failure: OperatorApprovalExists", async () => {
-      const nftReceiverAddress = await nftReceiver.getAddress();
+      const nftReceiverModuleAddress = await nftReceiverModule.getAddress();
 
       await nft.connect(receiver).setApprovalForAll(operator.address, true);
 
-      await expect(nft.connect(minter).safeAirdrop(nftReceiverAddress, ""))
-        .to.be.revertedWithCustomError(nftReceiver, "OperatorApprovalExists")
+      await expect(
+        nft.connect(minter).safeAirdrop(nftReceiverModuleAddress, "")
+      )
+        .to.be.revertedWithCustomError(
+          nftReceiverModule,
+          "OperatorApprovalExists"
+        )
         .withArgs(1);
     });
 
     it("success", async () => {
-      const nftReceiverAddress = await nftReceiver.getAddress();
+      const nftReceiverModuleAddress = await nftReceiverModule.getAddress();
 
-      await expect(nft.connect(minter).safeAirdrop(nftReceiverAddress, ""))
+      await expect(
+        nft.connect(minter).safeAirdrop(nftReceiverModuleAddress, "")
+      )
         .to.emit(nft, "Transfer")
-        .withArgs(ethers.ZeroAddress, nftReceiverAddress, 0)
+        .withArgs(ethers.ZeroAddress, nftReceiverModuleAddress, 0)
         .to.emit(nft, "Transfer")
-        .withArgs(nftReceiverAddress, receiver.address, 0);
+        .withArgs(nftReceiverModuleAddress, receiver.address, 0);
 
       expect(await nft.balanceOf(receiver.address)).to.equal(1);
       expect(await nft.ownerOf(0)).to.equal(receiver.address);

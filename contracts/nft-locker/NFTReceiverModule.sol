@@ -10,7 +10,7 @@ import {INFT} from "./INFT.sol";
 
 error OperatorApprovalExists(uint256 operatorApprovalCount);
 
-contract NFTReceiver is Context, Ownable, IERC721Receiver {
+contract NFTReceiverModule is Context, Ownable, IERC721Receiver {
     constructor(address initialOwner_) Ownable(initialOwner_) {}
 
     function onERC721Received(
