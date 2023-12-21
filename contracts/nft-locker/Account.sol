@@ -2,17 +2,17 @@
 pragma solidity 0.8.23;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {IAccount} from "./IAccount.sol";
 
-contract Account is Context, Ownable, IAccount {
+contract Account is Context, IAccount {
+    address public immutable owner;
+
     mapping(address module => bool) private _isModuleAuthorizeds;
 
-    constructor(
-        address initialOwner_,
-        address[] memory modules_
-    ) Ownable(initialOwner_) {
+    constructor(address owner_, address[] memory modules_) {
+        owner = owner_;
+
         for (uint256 i = 0; i < modules_.length; i++) {
             _isModuleAuthorizeds[modules_[i]] = true;
         }
@@ -23,10 +23,6 @@ contract Account is Context, Ownable, IAccount {
             revert UnauthorizedModule(_msgSender());
         }
         _;
-    }
-
-    function owner() public view override(Ownable, IAccount) returns (address) {
-        return super.owner();
     }
 
     function isModuleAuthorized(address module_) external view returns (bool) {
