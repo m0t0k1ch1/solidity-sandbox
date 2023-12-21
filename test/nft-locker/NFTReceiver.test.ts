@@ -14,12 +14,13 @@ describe("NFTReceiver", () => {
   let runner: HardhatEthersSigner;
   let minter: HardhatEthersSigner;
   let receiver: HardhatEthersSigner;
+  let operator: HardhatEthersSigner;
 
   let nft: NFT;
   let nftReceiver: NFTReceiver;
 
   before(async () => {
-    [runner, minter, receiver] = await ethers.getSigners();
+    [runner, minter, receiver, operator] = await ethers.getSigners();
   });
 
   beforeEach(async () => {
@@ -37,6 +38,16 @@ describe("NFTReceiver", () => {
   });
 
   describe("onERC721Received", () => {
+    it("failure: OperatorApprovalExists", async () => {
+      const nftReceiverAddress = await nftReceiver.getAddress();
+
+      await nft.connect(receiver).setApprovalForAll(operator.address, true);
+
+      await expect(nft.connect(minter).safeAirdrop(nftReceiverAddress, ""))
+        .to.be.revertedWithCustomError(nftReceiver, "OperatorApprovalExists")
+        .withArgs(1);
+    });
+
     it("success", async () => {
       const nftReceiverAddress = await nftReceiver.getAddress();
 
