@@ -17,7 +17,7 @@ contract NFTReceiverModule is Context, Ownable, IERC721Receiver {
         address,
         address,
         uint256 tokenID_,
-        bytes memory data_
+        bytes calldata data_
     ) external override returns (bytes4) {
         INFT nftContract = INFT(_msgSender());
 
