@@ -16,11 +16,12 @@ describe("Account", () => {
   let dummyModule1: HardhatEthersSigner;
   let dummyModule2: HardhatEthersSigner;
   let minter: HardhatEthersSigner;
+  let other: HardhatEthersSigner;
 
   let account: Account;
 
   before(async () => {
-    [runner, owner, dummyModule1, dummyModule2, minter] =
+    [runner, owner, dummyModule1, dummyModule2, minter, other] =
       await ethers.getSigners();
   });
 
@@ -96,33 +97,37 @@ describe("Account", () => {
     });
 
     it("failure: UnauthorizedModule", async () => {
+      const toAddress = await nft.getAddress();
+      const value = 0;
+      const data = nft.interface.encodeFunctionData("approve", [
+        other.address,
+        0,
+      ]);
+
       await expect(
-        account
-          .connect(dummyModule2)
-          .execute(
-            await nft.getAddress(),
-            0,
-            nft.interface.encodeFunctionData("approve", [ethers.ZeroAddress, 0])
-          )
+        account.connect(dummyModule2).execute(toAddress, value, data)
       )
         .to.be.revertedWithCustomError(account, "UnauthorizedModule")
         .withArgs(dummyModule2.address);
     });
 
     it("success", async () => {
-      await expect(
-        account
-          .connect(dummyModule1)
-          .execute(
-            await nft.getAddress(),
-            0,
-            nft.interface.encodeFunctionData("approve", [ethers.ZeroAddress, 0])
-          )
-      )
-        .to.emit(nft, "Approval")
-        .withArgs(await account.getAddress(), ethers.ZeroAddress, 0);
+      const toAddress = await nft.getAddress();
+      const value = 0;
+      const data = nft.interface.encodeFunctionData("approve", [
+        other.address,
+        0,
+      ]);
 
-      expect(await nft.getApproved(0)).to.equal(ethers.ZeroAddress);
+      await expect(
+        account.connect(dummyModule1).execute(toAddress, value, data)
+      )
+        .to.emit(account, "Executed")
+        .withArgs(await dummyModule1.getAddress(), toAddress, value, data)
+        .to.emit(nft, "Approval")
+        .withArgs(await account.getAddress(), other.address, 0);
+
+      expect(await nft.getApproved(0)).to.equal(other.address);
     });
   });
 });

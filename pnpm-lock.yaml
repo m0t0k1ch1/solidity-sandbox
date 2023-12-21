@@ -16,6 +16,9 @@ devDependencies:
   '@commitlint/config-conventional':
     specifier: 18.4.3
     version: 18.4.3
+  '@nomicfoundation/hardhat-chai-matchers':
+    specifier: 2.0.2
+    version: 2.0.2(@nomicfoundation/hardhat-ethers@3.0.5)(chai@4.3.10)(ethers@6.9.1)(hardhat@2.19.3)
   '@nomicfoundation/hardhat-ethers':
     specifier: 3.0.5
     version: 3.0.5(ethers@6.9.1)(hardhat@2.19.3)
