@@ -30,6 +30,9 @@ describe("RelayerModule", () => {
   let relayerModule: RelayerModule;
   let relayerModuleAddress: string;
 
+  let nft: NFT;
+  let nftAddress: string;
+
   before(async () => {
     [runner, accountOwner, dummyModule, nftMinter, other] =
       await ethers.getSigners();
@@ -56,25 +59,55 @@ describe("RelayerModule", () => {
 
       await account.connect(dummyModule).authorizeModule(relayerModuleAddress);
     }
+    {
+      const nftFactory = (await ethers.getContractFactory(
+        "contracts/nft-locker/NFT.sol:NFT"
+      )) as NFT__factory;
+      nft = await nftFactory.deploy(nftMinter.address);
+      await nft.waitForDeployment();
+      nftAddress = await nft.getAddress();
+
+      await nft.connect(nftMinter).safeAirdrop(accountAddress, "", "0x");
+    }
+  });
+
+  describe("lockNFT", () => {
+    it("success -> failure: NFTAlreadyLocked", async () => {
+      const nftLockDuration = 60;
+
+      {
+        const nftLockExpireAt = (await utils.now()) + nftLockDuration;
+        const data = relayerModule.interface.encodeFunctionData("lockNFT", [
+          nftAddress,
+          nftLockExpireAt,
+        ]);
+
+        await expect(
+          account.connect(dummyModule).execute(relayerModuleAddress, 0, data)
+        )
+          .to.emit(account, "Executed")
+          .withArgs(dummyModule.address, relayerModuleAddress, 0, data)
+          .to.emit(relayerModule, "NFTLocked")
+          .withArgs(accountAddress, nftAddress, nftLockExpireAt);
+
+        expect(
+          await relayerModule.getNFTLockExpireAt(accountAddress, nftAddress)
+        ).to.equal(nftLockExpireAt);
+      }
+      {
+        const data = relayerModule.interface.encodeFunctionData("lockNFT", [
+          nftAddress,
+          0,
+        ]);
+
+        await expect(
+          account.connect(dummyModule).execute(relayerModuleAddress, 0, data)
+        ).to.be.revertedWithCustomError(relayerModule, "NFTAlreadyLocked");
+      }
+    });
   });
 
   describe("execute", () => {
-    let nft: NFT;
-    let nftAddress: string;
-
-    beforeEach(async () => {
-      {
-        const nftFactory = (await ethers.getContractFactory(
-          "contracts/nft-locker/NFT.sol:NFT"
-        )) as NFT__factory;
-        nft = await nftFactory.deploy(nftMinter.address);
-        await nft.waitForDeployment();
-        nftAddress = await nft.getAddress();
-      }
-
-      await nft.connect(nftMinter).safeAirdrop(accountAddress, "", "0x");
-    });
-
     it("failure: InvalidSignature", async () => {
       const nonce = await relayerModule.nonceOf(accountAddress);
       const toAddress = nftAddress;
@@ -104,23 +137,16 @@ describe("RelayerModule", () => {
       const nftLockDuration = 60;
 
       {
-        const nftLockExpireAt = (await utils.now()) + nftLockDuration;
-        const data = relayerModule.interface.encodeFunctionData("lockNFT", [
-          nftAddress,
-          nftLockExpireAt,
-        ]);
-
-        await expect(
-          account.connect(dummyModule).execute(relayerModuleAddress, 0, data)
-        )
-          .to.emit(account, "Executed")
-          .withArgs(dummyModule.address, relayerModuleAddress, 0, data)
-          .to.emit(relayerModule, "NFTLocked")
-          .withArgs(accountAddress, nftAddress, nftLockExpireAt);
-
-        expect(
-          await relayerModule.getNFTLockExpireAt(accountAddress, nftAddress)
-        ).to.equal(nftLockExpireAt);
+        await account
+          .connect(dummyModule)
+          .execute(
+            relayerModuleAddress,
+            0,
+            relayerModule.interface.encodeFunctionData("lockNFT", [
+              nftAddress,
+              (await utils.now()) + nftLockDuration,
+            ])
+          );
       }
       {
         const nonce = await relayerModule.nonceOf(accountAddress);

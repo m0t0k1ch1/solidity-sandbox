@@ -6,12 +6,12 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import * as utils from "./utils";
 
 import {
+  Account,
+  Account__factory,
   RelayerModule,
   RelayerModule__factory,
   NFTReceiverModule,
   NFTReceiverModule__factory,
-  Account,
-  Account__factory,
   NFT,
   NFT__factory,
 } from "../../typechain-types";
