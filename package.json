@@ -11,25 +11,25 @@
     "test": "hardhat test"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "5.0.1"
+    "@openzeppelin/contracts": "5.0.2"
   },
   "devDependencies": {
-    "@commitlint/cli": "18.4.3",
-    "@commitlint/config-conventional": "18.4.3",
-    "@nomicfoundation/hardhat-chai-matchers": "2.0.2",
+    "@commitlint/cli": "19.0.3",
+    "@commitlint/config-conventional": "19.0.3",
+    "@nomicfoundation/hardhat-chai-matchers": "2.0.6",
     "@nomicfoundation/hardhat-ethers": "3.0.5",
     "@nomicfoundation/hardhat-network-helpers": "1.0.10",
     "@nomicfoundation/hardhat-toolbox": "4.0.0",
-    "@types/chai": "4.3.11",
+    "@types/chai": "4.3.12",
     "@types/mocha": "10.0.6",
-    "@types/node": "20.10.5",
-    "chai": "4.3.10",
+    "@types/node": "20.11.25",
+    "chai": "4.4.1",
     "commitizen": "4.3.0",
     "cz-conventional-changelog": "3.3.0",
-    "ethers": "6.9.1",
-    "hardhat": "2.19.3",
-    "husky": "8.0.3",
+    "ethers": "6.11.1",
+    "hardhat": "2.21.0",
+    "husky": "9.0.11",
     "ts-node": "10.9.2",
-    "typescript": "5.3.3"
+    "typescript": "5.4.2"
   }
 }
