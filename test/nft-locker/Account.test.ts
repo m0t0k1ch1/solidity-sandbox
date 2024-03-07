@@ -3,12 +3,11 @@ import { ethers } from "hardhat";
 
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
+import { Account, NFT } from "../../typechain-types/contracts/nft-locker";
 import {
-  Account,
   Account__factory,
-  NFT,
   NFT__factory,
-} from "../../typechain-types";
+} from "../../typechain-types/factories/contracts/nft-locker";
 
 describe("Account", () => {
   let runner: HardhatEthersSigner;

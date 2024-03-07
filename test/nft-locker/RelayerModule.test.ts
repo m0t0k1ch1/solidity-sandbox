@@ -10,12 +10,14 @@ import * as utils from "./utils";
 
 import {
   Account,
-  Account__factory,
   RelayerModule,
-  RelayerModule__factory,
   NFT,
+} from "../../typechain-types/contracts/nft-locker";
+import {
+  Account__factory,
+  RelayerModule__factory,
   NFT__factory,
-} from "../../typechain-types";
+} from "../../typechain-types/factories/contracts/nft-locker";
 
 describe("RelayerModule", () => {
   let runner: HardhatEthersSigner;
