@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -10,16 +11,25 @@ import {BaseAccount} from "@account-abstraction/contracts/core/BaseAccount.sol";
 import {IEntryPoint} from "@account-abstraction/contracts/interfaces/IEntryPoint.sol";
 import {UserOperation} from "@account-abstraction/contracts/interfaces/UserOperation.sol";
 
-contract Account is UUPSUpgradeable, BaseAccount {
+import {IPlugin} from "./IPlugin.sol";
+
+contract Account is Initializable, UUPSUpgradeable, BaseAccount {
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
 
     error UnauthorizedCaller(address caller);
+    error PluginInterfaceNotSupported(address plugin);
+    error PluginAlreadyInstalled(address plugin);
+    error PluginAlreadyUninstalled();
+
+    event PluginInstalled(address plugin);
+    event PluginUninstalled(address plugin);
 
     /// @custom:storage-location erc7201:account.main
     struct AccountMainStorage {
         address owner;
         IEntryPoint entryPoint;
+        IPlugin plugin;
     }
 
     // keccak256(abi.encode(uint256(keccak256("account.main")) - 1)) & ~bytes32(uint256(0xff));
@@ -45,6 +55,13 @@ contract Account is UUPSUpgradeable, BaseAccount {
     }
 
     constructor(address owner_, IEntryPoint entryPoint_) {
+        initialize(owner_, entryPoint_);
+    }
+
+    function initialize(
+        address owner_,
+        IEntryPoint entryPoint_
+    ) public initializer {
         AccountMainStorage storage $ = _getAccountMainStorage();
 
         $.owner = owner_;
@@ -68,6 +85,43 @@ contract Account is UUPSUpgradeable, BaseAccount {
         bytes memory data_
     ) public payable override onlyProxy onlyFromSelf {
         super.upgradeToAndCall(impl_, data_);
+    }
+
+    function installPlugin(
+        address plugin_,
+        bytes calldata data_
+    ) external onlyFromSelf {
+        AccountMainStorage storage $ = _getAccountMainStorage();
+
+        if (address($.plugin) != address(0)) {
+            revert PluginAlreadyInstalled(plugin_);
+        }
+
+        if (
+            !ERC165Checker.supportsInterface(plugin_, type(IPlugin).interfaceId)
+        ) {
+            revert PluginInterfaceNotSupported(plugin_);
+        }
+
+        $.plugin = IPlugin(plugin_);
+        $.plugin.onInstall(data_);
+
+        emit PluginInstalled(plugin_);
+    }
+
+    function uninstallPlugin(bytes calldata data_) external onlyFromSelf {
+        AccountMainStorage storage $ = _getAccountMainStorage();
+
+        if (address($.plugin) == address(0)) {
+            revert PluginAlreadyUninstalled();
+        }
+
+        IPlugin plugin = $.plugin;
+
+        delete $.plugin;
+        plugin.onUninstall(data_);
+
+        emit PluginUninstalled(address(plugin));
     }
 
     function execute(
