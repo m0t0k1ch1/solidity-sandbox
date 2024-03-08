@@ -2,6 +2,11 @@ import { ethers } from "hardhat";
 
 import { Block } from "ethers";
 
+export const ZERO_ADDRESS =
+  "0x0000000000000000000000000000000000000000" as const;
+export const ONE_ADDRESS =
+  "0x0000000000000000000000000000000000000001" as const;
+
 export async function now(): Promise<number> {
   return new Promise<number>((resolve, reject) => {
     ethers.provider

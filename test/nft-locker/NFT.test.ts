@@ -6,7 +6,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { NFT } from "../../typechain-types/contracts/nft-locker";
 import { NFT__factory } from "../../typechain-types/factories/contracts/nft-locker";
 
-describe("NFT", () => {
+describe("nft-locker/NFT", () => {
   let runner: HardhatEthersSigner;
   let minter: HardhatEthersSigner;
   let receiver: HardhatEthersSigner;

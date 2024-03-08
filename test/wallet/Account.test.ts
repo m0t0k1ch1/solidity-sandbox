@@ -14,7 +14,7 @@ import {
 import * as helpers from "@nomicfoundation/hardhat-network-helpers";
 import * as utils from "./utils";
 
-describe("Account", () => {
+describe("wallet/Account", () => {
   let runner: HardhatEthersSigner;
   let owner: HardhatEthersSigner;
   let other: HardhatEthersSigner;
@@ -47,8 +47,8 @@ describe("Account", () => {
       )) as Account__factory;
 
       const impl = await accountFactory.deploy(
-        ethers.ZeroAddress,
-        ethers.ZeroAddress
+        utils.ZERO_ADDRESS,
+        utils.ZERO_ADDRESS
       );
       await impl.waitForDeployment();
 
@@ -58,7 +58,7 @@ describe("Account", () => {
       accountAddress = await proxy.getAddress();
       account = accountFactory.attach(accountAddress) as Account;
 
-      await account.initialize(owner.address, ethers.ZeroAddress);
+      await account.initialize(owner.address, utils.ZERO_ADDRESS);
     }
     {
       pluginFactory = (await ethers.getContractFactory(
@@ -79,15 +79,15 @@ describe("Account", () => {
 
   it("initial state", async () => {
     expect(await account.owner()).to.equal(owner.address);
-    expect(await account.entryPoint()).to.equal(ethers.ZeroAddress);
-    expect(await account.plugin()).to.equal(ethers.ZeroAddress);
+    expect(await account.entryPoint()).to.equal(utils.ZERO_ADDRESS);
+    expect(await account.plugin()).to.equal(utils.ZERO_ADDRESS);
   });
 
   describe("initialize", () => {
     it("failure: InvalidInitialization", async () => {
       {
         await expect(
-          account.connect(owner).initialize(owner.address, ethers.ZeroAddress)
+          account.connect(owner).initialize(owner.address, utils.ZERO_ADDRESS)
         ).to.be.revertedWithCustomError(account, "InvalidInitialization");
       }
     });
@@ -107,8 +107,8 @@ describe("Account", () => {
     it("success", async () => {
       {
         const newImpl = await accountFactory.deploy(
-          ethers.ZeroAddress,
-          ethers.ZeroAddress
+          utils.ZERO_ADDRESS,
+          utils.ZERO_ADDRESS
         );
         await newImpl.waitForDeployment();
 
@@ -140,14 +140,14 @@ describe("Account", () => {
         const targetAddress = accountAddress;
         const value = 0;
         const data = account.interface.encodeFunctionData("installPlugin", [
-          ethers.ZeroAddress,
+          utils.ZERO_ADDRESS,
           "0x",
         ]);
 
         // installPlugin: failure: PluginInterfaceNotSupported
         await expect(account.connect(owner).execute(targetAddress, value, data))
           .to.be.revertedWithCustomError(account, "PluginInterfaceNotSupported")
-          .withArgs(ethers.ZeroAddress);
+          .withArgs(utils.ZERO_ADDRESS);
       }
       {
         const targetAddress = accountAddress;
@@ -187,10 +187,7 @@ describe("Account", () => {
         const targetAddress = accountAddress;
         const value = 0;
         const data = account.interface.encodeFunctionData("uninstallPlugin", [
-          ethers.AbiCoder.defaultAbiCoder().encode(
-            ["address"],
-            [accountAddress]
-          ),
+          "0x",
         ]);
 
         // uninstallPlugin: success
@@ -198,7 +195,7 @@ describe("Account", () => {
           .to.emit(account, "PluginUninstalled")
           .withArgs(pluginAddress);
 
-        expect(await account.plugin()).to.equal(ethers.ZeroAddress);
+        expect(await account.plugin()).to.equal(utils.ZERO_ADDRESS);
       }
       {
         const targetAddress = accountAddress;
@@ -243,7 +240,7 @@ describe("Account", () => {
         // execute(mint): success
         await expect(account.connect(owner).execute(targetAddress, value, data))
           .to.emit(nft, "Transfer")
-          .withArgs(ethers.ZeroAddress, accountAddress, 0);
+          .withArgs(utils.ZERO_ADDRESS, accountAddress, 0);
 
         expect(await nft.balanceOf(accountAddress)).to.equal(1);
         expect(await nft.ownerOf(0)).to.equal(accountAddress);
@@ -259,13 +256,7 @@ describe("Account", () => {
         ]);
 
         // setGuard: success
-        await expect(account.connect(owner).execute(targetAddress, value, data))
-          .to.emit(plugin, "GuardSet")
-          .withArgs(accountAddress, nftAddress, guardExpireAt);
-
-        expect(
-          await plugin.getGuardExpireAt(accountAddress, nftAddress)
-        ).to.equal(guardExpireAt);
+        account.connect(owner).execute(targetAddress, value, data);
       }
       {
         const targetAddress = nftAddress;

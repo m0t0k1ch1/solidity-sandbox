@@ -18,7 +18,7 @@ import {
   NFT__factory,
 } from "../../typechain-types/factories/contracts/nft-locker";
 
-describe("NFTReceiverModule", () => {
+describe("nft-locker/NFTReceiverModule", () => {
   let runner: HardhatEthersSigner;
   let dummyModule: HardhatEthersSigner;
   let accountOwner: HardhatEthersSigner;
