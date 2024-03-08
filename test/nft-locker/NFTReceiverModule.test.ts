@@ -25,15 +25,19 @@ describe("NFTReceiverModule", () => {
   let nftMinter: HardhatEthersSigner;
   let other: HardhatEthersSigner;
 
+  let accountFactory: Account__factory;
   let account: Account;
   let accountAddress: string;
 
+  let relayerModuleFactory: RelayerModule__factory;
   let relayerModule: RelayerModule;
   let relayerModuleAddress: string;
 
+  let nftReceiverModuleFactory: NFTReceiverModule__factory;
   let nftReceiverModule: NFTReceiverModule;
   let nftReceiverModuleAddress: string;
 
+  let nftFactory: NFT__factory;
   let nft: NFT;
   let nftAddress: string;
 
@@ -44,34 +48,40 @@ describe("NFTReceiverModule", () => {
 
   beforeEach(async () => {
     {
-      const accountFactory = (await ethers.getContractFactory(
+      accountFactory = (await ethers.getContractFactory(
         "contracts/nft-locker/Account.sol:Account"
       )) as Account__factory;
+
       account = await accountFactory.deploy(accountOwner.address, [
         dummyModule.address,
       ]);
       await account.waitForDeployment();
+
       accountAddress = await account.getAddress();
     }
     {
-      const relayerModuleFactory = (await ethers.getContractFactory(
+      relayerModuleFactory = (await ethers.getContractFactory(
         "contracts/nft-locker/RelayerModule.sol:RelayerModule"
       )) as RelayerModule__factory;
+
       relayerModule = await relayerModuleFactory.deploy();
       await relayerModule.waitForDeployment();
+
       relayerModuleAddress = await relayerModule.getAddress();
 
       await account.connect(dummyModule).authorizeModule(relayerModuleAddress);
     }
     {
-      const nftReceiverModuleFactory = (await ethers.getContractFactory(
+      nftReceiverModuleFactory = (await ethers.getContractFactory(
         "contracts/nft-locker/NFTReceiverModule.sol:NFTReceiverModule"
       )) as NFTReceiverModule__factory;
+
       nftReceiverModule = await nftReceiverModuleFactory.deploy(
         accountAddress,
         relayerModuleAddress
       );
       await nftReceiverModule.waitForDeployment();
+
       nftReceiverModuleAddress = await nftReceiverModule.getAddress();
 
       await account
@@ -79,34 +89,39 @@ describe("NFTReceiverModule", () => {
         .authorizeModule(nftReceiverModuleAddress);
     }
     {
-      const nftFactory = (await ethers.getContractFactory(
+      nftFactory = (await ethers.getContractFactory(
         "contracts/nft-locker/NFT.sol:NFT"
       )) as NFT__factory;
+
       nft = await nftFactory.deploy(nftMinter.address);
       await nft.waitForDeployment();
+
       nftAddress = await nft.getAddress();
     }
   });
 
   it("initial state", async () => {
-    expect(await nftReceiverModule.owner()).to.equal(accountAddress);
-    expect(await nftReceiverModule.nftLocker()).to.equal(relayerModuleAddress);
+    {
+      expect(await nftReceiverModule.owner()).to.equal(accountAddress);
+      expect(await nftReceiverModule.nftLocker()).to.equal(
+        relayerModuleAddress
+      );
+    }
   });
 
   describe("onERC721Received", () => {
     it("failure: OperatorApprovalExists", async () => {
-      {
-        await account
-          .connect(dummyModule)
-          .execute(
-            nftAddress,
-            0,
-            nft.interface.encodeFunctionData("setApprovalForAll", [
-              other.address,
-              true,
-            ])
-          );
-      }
+      await account
+        .connect(dummyModule)
+        .execute(
+          nftAddress,
+          0,
+          nft.interface.encodeFunctionData("setApprovalForAll", [
+            other.address,
+            true,
+          ])
+        );
+
       {
         await expect(
           nft.connect(nftMinter).safeAirdrop(nftReceiverModuleAddress, "", "0x")

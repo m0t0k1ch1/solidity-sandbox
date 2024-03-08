@@ -14,6 +14,7 @@ describe("NFT", () => {
   let operator2: HardhatEthersSigner;
   let operator3: HardhatEthersSigner;
 
+  let nftFactory: NFT__factory;
   let nft: NFT;
   let nftAddress: string;
 
@@ -23,27 +24,37 @@ describe("NFT", () => {
   });
 
   beforeEach(async () => {
-    const nftFactory = (await ethers.getContractFactory(
-      "contracts/nft-locker/NFT.sol:NFT"
-    )) as NFT__factory;
-    nft = await nftFactory.deploy(minter.address);
-    await nft.waitForDeployment();
-    nftAddress = await nft.getAddress();
+    {
+      nftFactory = (await ethers.getContractFactory(
+        "contracts/nft-locker/NFT.sol:NFT"
+      )) as NFT__factory;
+
+      nft = await nftFactory.deploy(minter.address);
+      await nft.waitForDeployment();
+
+      nftAddress = await nft.getAddress();
+    }
   });
 
   it("initial state", async () => {
-    expect(await nft.minter()).to.equal(minter.address);
-    expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(0);
+    {
+      expect(await nft.minter()).to.equal(minter.address);
+      expect(await nft.operatorApprovalCountOf(receiver.address)).to.equal(0);
+    }
   });
 
   describe("safeAirdrop", () => {
     it("success", async () => {
-      await expect(nft.connect(minter).safeAirdrop(receiver.address, "", "0x"))
-        .to.emit(nft, "Transfer")
-        .withArgs(ethers.ZeroAddress, receiver.address, 0);
+      {
+        await expect(
+          nft.connect(minter).safeAirdrop(receiver.address, "", "0x")
+        )
+          .to.emit(nft, "Transfer")
+          .withArgs(ethers.ZeroAddress, receiver.address, 0);
 
-      expect(await nft.balanceOf(receiver.address)).to.equal(1);
-      expect(await nft.ownerOf(0)).to.equal(receiver.address);
+        expect(await nft.balanceOf(receiver.address)).to.equal(1);
+        expect(await nft.ownerOf(0)).to.equal(receiver.address);
+      }
     });
   });
 
