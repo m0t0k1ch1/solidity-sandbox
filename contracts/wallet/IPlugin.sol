@@ -7,7 +7,6 @@ interface IPlugin {
     function onUninstall(bytes calldata data) external;
 
     function preExecutionHook(
-        address caller,
         address target,
         uint256 value,
         bytes calldata data

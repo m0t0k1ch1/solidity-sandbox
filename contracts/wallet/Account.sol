@@ -12,8 +12,14 @@ import {IEntryPoint} from "@account-abstraction/contracts/interfaces/IEntryPoint
 import {UserOperation} from "@account-abstraction/contracts/interfaces/UserOperation.sol";
 
 import {IPlugin} from "./IPlugin.sol";
+import {AccountStorage} from "./AccountStorage.sol";
 
-contract Account is Initializable, UUPSUpgradeable, BaseAccount {
+contract Account is
+    Initializable,
+    UUPSUpgradeable,
+    BaseAccount,
+    AccountStorage
+{
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
 
@@ -22,24 +28,11 @@ contract Account is Initializable, UUPSUpgradeable, BaseAccount {
     error PluginAlreadyInstalled(address plugin);
     error PluginAlreadyUninstalled();
 
-    event PluginInstalled(address plugin);
-    event PluginUninstalled(address plugin);
-
-    /// @custom:storage-location erc7201:account.main
-    struct AccountMainStorage {
-        address owner;
-        IEntryPoint entryPoint;
-        address plugin;
-    }
-
-    // keccak256(abi.encode(uint256(keccak256("account.main")) - 1)) & ~bytes32(uint256(0xff));
-    bytes32 private constant _ACCOUNT_MAIN_STORAGE_LOCATION =
-        0x4c26e3de87d6b510c7b0bd325d8fc65d9a252c7959e43999c3f7016ee6412b00;
+    event PluginInstalled(address indexed plugin);
+    event PluginUninstalled(address indexed plugin);
 
     modifier onlyFromOwnerOrEntryPoint() {
-        AccountMainStorage storage $ = _getAccountMainStorage();
-
-        if (msg.sender != $.owner && msg.sender != address($.entryPoint)) {
+        if (msg.sender != owner() && msg.sender != address(entryPoint())) {
             revert UnauthorizedCaller(msg.sender);
         }
 
@@ -69,15 +62,15 @@ contract Account is Initializable, UUPSUpgradeable, BaseAccount {
     }
 
     function owner() public view returns (address) {
-        AccountMainStorage storage $ = _getAccountMainStorage();
-
-        return $.owner;
+        return _getAccountMainStorage().owner;
     }
 
-    function entryPoint() public view virtual override returns (IEntryPoint) {
-        AccountMainStorage storage $ = _getAccountMainStorage();
+    function entryPoint() public view override returns (IEntryPoint) {
+        return _getAccountMainStorage().entryPoint;
+    }
 
-        return $.entryPoint;
+    function plugin() public view returns (address) {
+        return _getAccountMainStorage().plugin;
     }
 
     function upgradeToAndCall(
@@ -112,16 +105,16 @@ contract Account is Initializable, UUPSUpgradeable, BaseAccount {
     function uninstallPlugin(bytes calldata data_) external onlyFromSelf {
         AccountMainStorage storage $ = _getAccountMainStorage();
 
+        address plugin_ = $.plugin;
+
         if (address($.plugin) == address(0)) {
             revert PluginAlreadyUninstalled();
         }
 
-        address plugin = $.plugin;
-
         delete $.plugin;
-        IPlugin(plugin).onUninstall(data_);
+        IPlugin(plugin_).onUninstall(data_);
 
-        emit PluginUninstalled(plugin);
+        emit PluginUninstalled(plugin_);
     }
 
     function execute(
@@ -132,12 +125,7 @@ contract Account is Initializable, UUPSUpgradeable, BaseAccount {
         AccountMainStorage storage $ = _getAccountMainStorage();
 
         if ($.plugin != address(0)) {
-            IPlugin($.plugin).preExecutionHook(
-                msg.sender,
-                target_,
-                value_,
-                data_
-            );
+            IPlugin($.plugin).preExecutionHook(target_, value_, data_);
         }
 
         (bool success, bytes memory result) = target_.call{value: value_}(
@@ -152,17 +140,16 @@ contract Account is Initializable, UUPSUpgradeable, BaseAccount {
         return result;
     }
 
-    receive() external payable {}
-
-    function _getAccountMainStorage()
-        private
-        pure
-        returns (AccountMainStorage storage $)
-    {
-        assembly {
-            $.slot := _ACCOUNT_MAIN_STORAGE_LOCATION
-        }
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external pure returns (bytes4) {
+        return this.onERC721Received.selector;
     }
+
+    receive() external payable {}
 
     function _validateSignature(
         UserOperation calldata userOp_,

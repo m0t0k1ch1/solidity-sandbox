@@ -8,6 +8,12 @@ import {IPlugin} from "./IPlugin.sol";
 contract Plugin is ERC165, IPlugin {
     error Guarded(address caller, address target);
 
+    event GuardSet(
+        address indexed caller,
+        address indexed target,
+        uint256 expireAt
+    );
+
     mapping(address account => mapping(address target => uint256 expireAt))
         private _guards;
     mapping(address account => address[] targets) private _targets;
@@ -32,19 +38,27 @@ contract Plugin is ERC165, IPlugin {
         delete _targets[account];
     }
 
+    function getGuardExpireAt(
+        address caller,
+        address target
+    ) external view returns (uint256) {
+        return _guards[caller][target];
+    }
+
     function setGuard(address target, uint256 expireAt) external {
         _guards[msg.sender][target] = expireAt;
         _targets[msg.sender].push(target);
+
+        emit GuardSet(msg.sender, target, expireAt);
     }
 
     function preExecutionHook(
-        address caller_,
         address target_,
         uint256,
         bytes calldata
     ) external view {
-        if (block.timestamp < _guards[caller_][target_]) {
-            revert Guarded(caller_, target_);
+        if (block.timestamp < _guards[msg.sender][target_]) {
+            revert Guarded(msg.sender, target_);
         }
     }
 }
