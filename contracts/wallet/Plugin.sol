@@ -28,14 +28,12 @@ contract Plugin is ERC165, IPlugin {
 
     function onInstall(bytes calldata) external {}
 
-    function onUninstall(bytes calldata data_) external {
-        address account = abi.decode(data_, (address));
-
-        for (uint256 i = 0; i < _targets[account].length; i++) {
-            delete _guards[account][_targets[account][i]];
+    function onUninstall(bytes calldata) external {
+        for (uint256 i = 0; i < _targets[msg.sender].length; i++) {
+            delete _guards[msg.sender][_targets[msg.sender][i]];
         }
 
-        delete _targets[account];
+        delete _targets[msg.sender];
     }
 
     function getGuardExpireAt(
