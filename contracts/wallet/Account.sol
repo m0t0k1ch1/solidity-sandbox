@@ -14,7 +14,7 @@ contract Account is UUPSUpgradeable, BaseAccount {
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
 
-    error PluginExecutionDenied(address plugin);
+    error UnauthorizedCaller(address caller);
 
     /// @custom:storage-location erc7201:account.main
     struct AccountMainStorage {
@@ -25,6 +25,24 @@ contract Account is UUPSUpgradeable, BaseAccount {
     // keccak256(abi.encode(uint256(keccak256("account.main")) - 1)) & ~bytes32(uint256(0xff));
     bytes32 private constant _ACCOUNT_MAIN_STORAGE_LOCATION =
         0x4c26e3de87d6b510c7b0bd325d8fc65d9a252c7959e43999c3f7016ee6412b00;
+
+    modifier onlyFromOwnerOrEntryPoint() {
+        AccountMainStorage storage $ = _getAccountMainStorage();
+
+        if (msg.sender != $.owner && msg.sender != address($.entryPoint)) {
+            revert UnauthorizedCaller(msg.sender);
+        }
+
+        _;
+    }
+
+    modifier onlyFromSelf() {
+        if (msg.sender != address(this)) {
+            revert UnauthorizedCaller(msg.sender);
+        }
+
+        _;
+    }
 
     constructor(address owner_, IEntryPoint entryPoint_) {
         AccountMainStorage storage $ = _getAccountMainStorage();
@@ -48,7 +66,7 @@ contract Account is UUPSUpgradeable, BaseAccount {
     function upgradeToAndCall(
         address impl_,
         bytes memory data_
-    ) public payable override onlyProxy {
+    ) public payable override onlyProxy onlyFromSelf {
         super.upgradeToAndCall(impl_, data_);
     }
 
@@ -56,7 +74,7 @@ contract Account is UUPSUpgradeable, BaseAccount {
         address target_,
         uint256 value_,
         bytes calldata data_
-    ) external payable returns (bytes memory) {
+    ) external payable onlyFromOwnerOrEntryPoint returns (bytes memory) {
         (bool success, bytes memory result) = target_.call{value: value_}(
             data_
         );
@@ -67,10 +85,6 @@ contract Account is UUPSUpgradeable, BaseAccount {
         }
 
         return result;
-    }
-
-    fallback() external payable {
-        // TODO
     }
 
     receive() external payable {}
