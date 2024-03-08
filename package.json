@@ -11,6 +11,7 @@
     "test": "hardhat test"
   },
   "dependencies": {
+    "@account-abstraction/contracts": "0.6.0",
     "@openzeppelin/contracts": "5.0.2"
   },
   "devDependencies": {
