@@ -29,7 +29,7 @@ contract Account is Initializable, UUPSUpgradeable, BaseAccount {
     struct AccountMainStorage {
         address owner;
         IEntryPoint entryPoint;
-        IPlugin plugin;
+        address plugin;
     }
 
     // keccak256(abi.encode(uint256(keccak256("account.main")) - 1)) & ~bytes32(uint256(0xff));
@@ -103,8 +103,8 @@ contract Account is Initializable, UUPSUpgradeable, BaseAccount {
             revert PluginInterfaceNotSupported(plugin_);
         }
 
-        $.plugin = IPlugin(plugin_);
-        $.plugin.onInstall(data_);
+        $.plugin = plugin_;
+        IPlugin(plugin_).onInstall(data_);
 
         emit PluginInstalled(plugin_);
     }
@@ -116,12 +116,12 @@ contract Account is Initializable, UUPSUpgradeable, BaseAccount {
             revert PluginAlreadyUninstalled();
         }
 
-        IPlugin plugin = $.plugin;
+        address plugin = $.plugin;
 
         delete $.plugin;
-        plugin.onUninstall(data_);
+        IPlugin(plugin).onUninstall(data_);
 
-        emit PluginUninstalled(address(plugin));
+        emit PluginUninstalled(plugin);
     }
 
     function execute(
@@ -129,6 +129,17 @@ contract Account is Initializable, UUPSUpgradeable, BaseAccount {
         uint256 value_,
         bytes calldata data_
     ) external payable onlyFromOwnerOrEntryPoint returns (bytes memory) {
+        AccountMainStorage storage $ = _getAccountMainStorage();
+
+        if ($.plugin != address(0)) {
+            IPlugin($.plugin).preExecutionHook(
+                msg.sender,
+                target_,
+                value_,
+                data_
+            );
+        }
+
         (bool success, bytes memory result) = target_.call{value: value_}(
             data_
         );

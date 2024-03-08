@@ -5,10 +5,13 @@ import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 import {IPlugin} from "./IPlugin.sol";
 
-// FOR DEBUG
-import "hardhat/console.sol";
-
 contract Plugin is ERC165, IPlugin {
+    error Guarded(address caller, address target);
+
+    mapping(address account => mapping(address target => uint256 expireAt))
+        private _guards;
+    mapping(address account => address[] targets) private _targets;
+
     function supportsInterface(
         bytes4 interfaceID_
     ) public view override returns (bool) {
@@ -17,18 +20,31 @@ contract Plugin is ERC165, IPlugin {
             super.supportsInterface(interfaceID_);
     }
 
-    function onInstall(bytes calldata) external pure {
-        console.log("onInstall");
+    function onInstall(bytes calldata) external {}
+
+    function onUninstall(bytes calldata data_) external {
+        address account = abi.decode(data_, (address));
+
+        for (uint256 i = 0; i < _targets[account].length; i++) {
+            delete _guards[account][_targets[account][i]];
+        }
+
+        delete _targets[account];
     }
 
-    function onUninstall(bytes calldata) external pure {
-        console.log("onUninstall");
+    function setGuard(address target, uint256 expireAt) external {
+        _guards[msg.sender][target] = expireAt;
+        _targets[msg.sender].push(target);
     }
 
     function preExecutionHook(
-        address caller,
-        address target,
-        uint256 value,
-        bytes calldata data
-    ) external {}
+        address caller_,
+        address target_,
+        uint256,
+        bytes calldata
+    ) external view {
+        if (block.timestamp < _guards[caller_][target_]) {
+            revert Guarded(caller_, target_);
+        }
+    }
 }

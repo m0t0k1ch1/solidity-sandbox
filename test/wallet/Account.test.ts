@@ -164,7 +164,10 @@ describe("Account", () => {
       }
       {
         const data = account.interface.encodeFunctionData("uninstallPlugin", [
-          "0x",
+          ethers.AbiCoder.defaultAbiCoder().encode(
+            ["address"],
+            [accountAddress]
+          ),
         ]);
 
         // uninstallPlugin: success
