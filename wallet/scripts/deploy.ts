@@ -68,6 +68,6 @@ const ENTRY_POINT_ADDRESS =
 })()
   .then(() => process.exit(0))
   .catch((e) => {
-    console.log(e);
+    console.error(e);
     process.exit(1);
   });

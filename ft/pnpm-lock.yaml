@@ -18,9 +18,6 @@ importers:
       '@nomicfoundation/hardhat-ethers':
         specifier: 3.0.6
         version: 3.0.6(ethers@6.13.1)(hardhat@2.22.6(ts-node@10.9.2(@types/node@20.14.9)(typescript@5.5.3))(typescript@5.5.3))
-      '@nomicfoundation/hardhat-network-helpers':
-        specifier: 1.0.11
-        version: 1.0.11(hardhat@2.22.6(ts-node@10.9.2(@types/node@20.14.9)(typescript@5.5.3))(typescript@5.5.3))
       '@nomicfoundation/hardhat-toolbox':
         specifier: 5.0.0
         version: 5.0.0(kw2dhwhiia5mbl7l6cn4d2l6gi)
