@@ -3,8 +3,8 @@ import { ethers } from "hardhat";
 
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-import { NFT } from "../../typechain-types/contracts/nft-locker";
-import { NFT__factory } from "../../typechain-types/factories/contracts/nft-locker";
+import { NFT } from "../typechain-types/contracts";
+import { NFT__factory } from "../typechain-types/factories/contracts";
 
 describe("nft-locker/NFT", () => {
   let runner: HardhatEthersSigner;
@@ -25,9 +25,7 @@ describe("nft-locker/NFT", () => {
 
   beforeEach(async () => {
     {
-      nftFactory = (await ethers.getContractFactory(
-        "contracts/nft-locker/NFT.sol:NFT"
-      )) as NFT__factory;
+      nftFactory = await ethers.getContractFactory("NFT");
 
       nft = await nftFactory.deploy(minter.address);
       await nft.waitForDeployment();

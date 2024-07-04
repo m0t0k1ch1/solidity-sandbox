@@ -1,11 +1,7 @@
 import { ethers } from "hardhat";
 
-import { Account, Plugin } from "../../typechain-types/contracts/wallet";
-import {
-  Account__factory,
-  Plugin__factory,
-  Proxy__factory,
-} from "../../typechain-types/factories/contracts/wallet";
+import { Account, Plugin } from "../typechain-types/contracts";
+import { Proxy__factory } from "../typechain-types/factories/contracts";
 
 const ENTRY_POINT_ADDRESS =
   "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789" as const;
@@ -13,19 +9,11 @@ const ENTRY_POINT_ADDRESS =
 (async () => {
   const [runner] = await ethers.getSigners();
 
-  const proxyFactory = (await ethers.getContractFactory(
-    "contracts/wallet/Proxy.sol:Proxy"
-  )) as Proxy__factory;
-  const accountFactory = (await ethers.getContractFactory(
-    "contracts/wallet/Account.sol:Account"
-  )) as Account__factory;
-  const pluginFactory = (await ethers.getContractFactory(
-    "contracts/wallet/Plugin.sol:Plugin"
-  )) as Plugin__factory;
-
   let account: Account;
   let accountAddress: string;
   {
+    const accountFactory = await ethers.getContractFactory("Account");
+
     const impl = await accountFactory.deploy(
       ethers.ZeroAddress,
       ethers.ZeroAddress
@@ -36,6 +24,10 @@ const ENTRY_POINT_ADDRESS =
 
     console.log(`Account(impl): deployed to ${implAddress}`);
 
+    const proxyFactory = (await ethers.getContractFactory(
+      "contracts/Proxy.sol:Proxy"
+    )) as Proxy__factory;
+
     const proxy = await proxyFactory.deploy(await impl.getAddress(), "0x");
     await proxy.waitForDeployment();
 
@@ -43,7 +35,7 @@ const ENTRY_POINT_ADDRESS =
 
     console.log(`Account(proxy): deployed to ${accountAddress}`);
 
-    account = accountFactory.attach(accountAddress) as Account;
+    account = await ethers.getContractAt("Account", accountAddress);
 
     await account.initialize(runner.address, ENTRY_POINT_ADDRESS);
   }
@@ -51,6 +43,8 @@ const ENTRY_POINT_ADDRESS =
   let plugin: Plugin;
   let pluginAddress: string;
   {
+    const pluginFactory = await ethers.getContractFactory("Plugin");
+
     plugin = await pluginFactory.deploy();
     await plugin.waitForDeployment();
 

@@ -3,12 +3,12 @@ import { ethers } from "hardhat";
 
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-import { Plugin } from "../../typechain-types/contracts/wallet";
-import { Plugin__factory } from "../../typechain-types/factories/contracts/wallet";
+import { Plugin } from "../typechain-types/contracts";
+import { Plugin__factory } from "../typechain-types/factories/contracts";
 
 import * as utils from "./utils";
 
-describe("wallet/Plugin", () => {
+describe("Plugin", () => {
   let runner: HardhatEthersSigner;
   let account1: HardhatEthersSigner;
   let account2: HardhatEthersSigner;
@@ -23,9 +23,7 @@ describe("wallet/Plugin", () => {
 
   beforeEach(async () => {
     {
-      pluginFactory = (await ethers.getContractFactory(
-        "contracts/wallet/Plugin.sol:Plugin"
-      )) as Plugin__factory;
+      pluginFactory = await ethers.getContractFactory("Plugin");
 
       plugin = await pluginFactory.deploy();
       await plugin.waitForDeployment();

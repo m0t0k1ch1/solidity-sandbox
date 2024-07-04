@@ -3,20 +3,20 @@ import { ethers } from "hardhat";
 
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-import * as utils from "./utils";
-
 import {
   Account,
   RelayerModule,
   NFTReceiverModule,
   NFT,
-} from "../../typechain-types/contracts/nft-locker";
+} from "../typechain-types/contracts";
 import {
   Account__factory,
   RelayerModule__factory,
   NFTReceiverModule__factory,
   NFT__factory,
-} from "../../typechain-types/factories/contracts/nft-locker";
+} from "../typechain-types/factories/contracts";
+
+import * as utils from "./utils";
 
 describe("nft-locker/NFTReceiverModule", () => {
   let runner: HardhatEthersSigner;
@@ -48,9 +48,7 @@ describe("nft-locker/NFTReceiverModule", () => {
 
   beforeEach(async () => {
     {
-      accountFactory = (await ethers.getContractFactory(
-        "contracts/nft-locker/Account.sol:Account"
-      )) as Account__factory;
+      accountFactory = await ethers.getContractFactory("Account");
 
       account = await accountFactory.deploy(accountOwner.address, [
         dummyModule.address,
@@ -60,9 +58,7 @@ describe("nft-locker/NFTReceiverModule", () => {
       accountAddress = await account.getAddress();
     }
     {
-      relayerModuleFactory = (await ethers.getContractFactory(
-        "contracts/nft-locker/RelayerModule.sol:RelayerModule"
-      )) as RelayerModule__factory;
+      relayerModuleFactory = await ethers.getContractFactory("RelayerModule");
 
       relayerModule = await relayerModuleFactory.deploy();
       await relayerModule.waitForDeployment();
@@ -72,9 +68,9 @@ describe("nft-locker/NFTReceiverModule", () => {
       await account.connect(dummyModule).authorizeModule(relayerModuleAddress);
     }
     {
-      nftReceiverModuleFactory = (await ethers.getContractFactory(
-        "contracts/nft-locker/NFTReceiverModule.sol:NFTReceiverModule"
-      )) as NFTReceiverModule__factory;
+      nftReceiverModuleFactory = await ethers.getContractFactory(
+        "NFTReceiverModule"
+      );
 
       nftReceiverModule = await nftReceiverModuleFactory.deploy(
         accountAddress,
@@ -89,9 +85,7 @@ describe("nft-locker/NFTReceiverModule", () => {
         .authorizeModule(nftReceiverModuleAddress);
     }
     {
-      nftFactory = (await ethers.getContractFactory(
-        "contracts/nft-locker/NFT.sol:NFT"
-      )) as NFT__factory;
+      nftFactory = await ethers.getContractFactory("NFT");
 
       nft = await nftFactory.deploy(nftMinter.address);
       await nft.waitForDeployment();

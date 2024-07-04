@@ -3,21 +3,17 @@ import { ethers } from "hardhat";
 
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
-
-import * as helpers from "@nomicfoundation/hardhat-network-helpers";
-import * as utils from "./utils";
-
-import {
-  Account,
-  RelayerModule,
-  NFT,
-} from "../../typechain-types/contracts/nft-locker";
+import { Account, RelayerModule, NFT } from "../typechain-types/contracts";
 import {
   Account__factory,
   RelayerModule__factory,
   NFT__factory,
-} from "../../typechain-types/factories/contracts/nft-locker";
+} from "../typechain-types/factories/contracts";
+
+import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
+
+import * as helpers from "@nomicfoundation/hardhat-network-helpers";
+import * as utils from "./utils";
 
 describe("nft-locker/RelayerModule", () => {
   let runner: HardhatEthersSigner;
@@ -45,9 +41,7 @@ describe("nft-locker/RelayerModule", () => {
 
   beforeEach(async () => {
     {
-      accountFactory = (await ethers.getContractFactory(
-        "contracts/nft-locker/Account.sol:Account"
-      )) as Account__factory;
+      accountFactory = await ethers.getContractFactory("Account");
 
       account = await accountFactory.deploy(accountOwner.address, [
         dummyModule.address,
@@ -57,9 +51,7 @@ describe("nft-locker/RelayerModule", () => {
       accountAddress = await account.getAddress();
     }
     {
-      relayerModuleFactory = (await ethers.getContractFactory(
-        "contracts/nft-locker/RelayerModule.sol:RelayerModule"
-      )) as RelayerModule__factory;
+      relayerModuleFactory = await ethers.getContractFactory("RelayerModule");
 
       relayerModule = await relayerModuleFactory.deploy();
       await relayerModule.waitForDeployment();
@@ -69,9 +61,7 @@ describe("nft-locker/RelayerModule", () => {
       await account.connect(dummyModule).authorizeModule(relayerModuleAddress);
     }
     {
-      nftFactory = (await ethers.getContractFactory(
-        "contracts/nft-locker/NFT.sol:NFT"
-      )) as NFT__factory;
+      nftFactory = await ethers.getContractFactory("NFT");
 
       nft = await nftFactory.deploy(nftMinter.address);
       await nft.waitForDeployment();

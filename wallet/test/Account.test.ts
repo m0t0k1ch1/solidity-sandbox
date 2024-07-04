@@ -3,13 +3,13 @@ import { ethers } from "hardhat";
 
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-import { Account, Plugin } from "../../typechain-types/contracts/wallet";
+import { Account, Plugin } from "../typechain-types/contracts";
 import {
   Account__factory,
   NFT__factory,
   Plugin__factory,
   Proxy__factory,
-} from "../../typechain-types/factories/contracts/wallet";
+} from "../typechain-types/factories/contracts";
 
 import * as helpers from "@nomicfoundation/hardhat-network-helpers";
 import * as utils from "./utils";
@@ -38,13 +38,11 @@ describe("wallet/Account", () => {
   beforeEach(async () => {
     {
       proxyFactory = (await ethers.getContractFactory(
-        "contracts/wallet/Proxy.sol:Proxy"
+        "contracts/Proxy.sol:Proxy"
       )) as Proxy__factory;
     }
     {
-      accountFactory = (await ethers.getContractFactory(
-        "contracts/wallet/Account.sol:Account"
-      )) as Account__factory;
+      accountFactory = await ethers.getContractFactory("Account");
 
       const impl = await accountFactory.deploy(
         utils.ZERO_ADDRESS,
@@ -61,9 +59,7 @@ describe("wallet/Account", () => {
       await account.initialize(owner.address, utils.ZERO_ADDRESS);
     }
     {
-      pluginFactory = (await ethers.getContractFactory(
-        "contracts/wallet/Plugin.sol:Plugin"
-      )) as Plugin__factory;
+      pluginFactory = await ethers.getContractFactory("Plugin");
 
       plugin = await pluginFactory.deploy();
       await plugin.waitForDeployment();
@@ -71,9 +67,7 @@ describe("wallet/Account", () => {
       pluginAddress = await plugin.getAddress();
     }
     {
-      nftFactory = (await ethers.getContractFactory(
-        "contracts/wallet/NFT.sol:NFT"
-      )) as NFT__factory;
+      nftFactory = await ethers.getContractFactory("NFT");
     }
   });
 
