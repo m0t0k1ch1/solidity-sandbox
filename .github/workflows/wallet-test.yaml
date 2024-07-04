@@ -2,7 +2,7 @@ name: wallet-test
 on:
   push:
     branches:
-      - "**"
+      - main
     paths:
       - .github/workflows/wallet-test.yaml
       - wallet/**
