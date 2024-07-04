@@ -15,7 +15,7 @@ import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import * as helpers from "@nomicfoundation/hardhat-network-helpers";
 import * as utils from "./utils";
 
-describe("nft-locker/RelayerModule", () => {
+describe("RelayerModule", () => {
   let runner: HardhatEthersSigner;
   let accountOwner: HardhatEthersSigner;
   let dummyModule: HardhatEthersSigner;

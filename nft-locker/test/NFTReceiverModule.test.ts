@@ -18,7 +18,7 @@ import {
 
 import * as utils from "./utils";
 
-describe("nft-locker/NFTReceiverModule", () => {
+describe("NFTReceiverModule", () => {
   let runner: HardhatEthersSigner;
   let dummyModule: HardhatEthersSigner;
   let accountOwner: HardhatEthersSigner;

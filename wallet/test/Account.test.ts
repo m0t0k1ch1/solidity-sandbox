@@ -14,7 +14,7 @@ import {
 import * as helpers from "@nomicfoundation/hardhat-network-helpers";
 import * as utils from "./utils";
 
-describe("wallet/Account", () => {
+describe("Account", () => {
   let runner: HardhatEthersSigner;
   let owner: HardhatEthersSigner;
   let other: HardhatEthersSigner;
