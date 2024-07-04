@@ -1,4 +1,4 @@
-name: wallet-test
+name: wallet-test TEST
 on:
   push:
     branches:
